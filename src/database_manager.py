@@ -52,50 +52,7 @@ class DatabaseManager:
         except SQLAlchemyError as e:
             self.logger.error(f"Error loading {table_name}: {str(e)}")
             raise
-    
-    def get_table_info(self, table_name: str) -> Dict[str, Any]:
-        """Get information about a table structure"""
-        try:
-            with self.engine.connect() as conn:
-                result = conn.execute(text(f"PRAGMA table_info({table_name})"))
-                columns = [row[1] for row in result.fetchall()]
-                
-                result = conn.execute(text(f"SELECT COUNT(*) FROM {table_name}"))
-                row_count = result.fetchone()[0]
-                
-                return {
-                    'columns': columns,
-                    'row_count': row_count,
-                    'table_name': table_name
-                }
-                
-        except SQLAlchemyError as e:
-            self.logger.error(f"Error getting table info for {table_name}: {str(e)}")
-            raise
-    
-    def list_tables(self) -> list:
-        """List all tables in the database"""
-        try:
-            with self.engine.connect() as conn:
-                result = conn.execute(text("SELECT name FROM sqlite_master WHERE type='table'"))
-                tables = [row[0] for row in result.fetchall()]
-                return tables
-                
-        except SQLAlchemyError as e:
-            self.logger.error(f"Error listing tables: {str(e)}")
-            raise
-    
-    def execute_query(self, query: str) -> pd.DataFrame:
-        """Execute a custom SQL query and return results as DataFrame"""
-        try:
-            df = pd.read_sql(query, self.engine)
-            self.logger.debug(f"Query executed, returned {len(df)} rows")
-            return df
-            
-        except SQLAlchemyError as e:
-            self.logger.error(f"Error executing query: {str(e)}")
-            raise
-    
+
     def store_analysis_results(self, results: Dict[str, Any]) -> None:
         """Store analysis results in the database"""
         try:

@@ -201,18 +201,6 @@ class DataCollector:
         
         return records
     
-    def _parse_cso_jsonstat_limited(self, data: dict, dataset_type: str, max_records: int = 500) -> List[Dict]:
-        """Parse CSO JSON-stat with record limit"""
-        try:
-            records = self._parse_cso_jsonstat(data, dataset_type)
-            if len(records) > max_records:
-                self.logger.info(f"Limiting records from {len(records)} to {max_records}")
-                records = sorted(records, key=lambda x: x.get('year', ''), reverse=True)[:max_records]
-            return records
-        except Exception as e:
-            self.logger.error(f"Error in limited parser: {e}")
-            return []
-    
     def _normalize_pollution_columns(self, df: pd.DataFrame) -> pd.DataFrame:
         """Normalize pollution data column names"""
         if 'county' not in df.columns and 'County' in df.columns:
