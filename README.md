@@ -57,6 +57,9 @@ This project analyzes the relationship between air pollution, water quality, and
 │   ├── analyzer.py        # Statistical analysis and correlation detection
 │   ├── analysis_results.py # Data structures for analysis results
 │   └── dashboard_visualizer.py # Interactive dashboard generation
+├── templates/             # HTML templates for dashboard
+│   ├── dashboard.html     # Main dashboard template with styling
+│   └── README.md          # Template documentation
 ├── data/                  # Database and raw data files
 ├── output/                # Generated visualizations and reports
 └── logs/                  # Application logs
@@ -156,6 +159,7 @@ This project analyzes the relationship between air pollution, water quality, and
 - **Plotly:** Interactive dashboard with 18 components
 - **Subplots:** Multi-panel layout organized by analytical theme
 - **Interactive Features:** Hover tooltips, legend filtering, pan/zoom capabilities
+- **Template-Based Design:** Separates HTML/CSS from Python logic for easier customization
 
 ## Usage Examples
 

@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Ireland Environmental Analysis Dashboard</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            padding: 30px;
+            border-radius: 10px;
+            margin: 20px 0;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+        }
+        .header h1 {
+            color: white;
+            text-align: center;
+            margin: 0 0 10px 0;
+            font-size: 32px;
+        }
+        .header p {
+            color: #bdc3c7;
+            text-align: center;
+            margin: 0;
+            font-size: 16px;
+        }
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+            margin: 20px 0;
+        }
+        .info-card {
+            background: #34495e;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .info-card h3 {
+            color: white;
+            margin: 0 0 15px 0;
+            font-size: 18px;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+        .info-card-content {
+            background: rgba(255,255,255,0.95);
+            padding: 15px;
+            border-radius: 6px;
+            font-size: 13px;
+        }
+        .info-card-content p {
+            margin: 0 0 10px 0;
+        }
+        .info-card-content ul {
+            margin: 0 0 15px 0;
+            padding-left: 20px;
+        }
+        .info-card-content ul:last-child {
+            margin-bottom: 0;
+        }
+        .constraints-section {
+            background: #7f8c8d;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .constraints-section h3 {
+            color: white;
+            margin: 0 0 15px 0;
+            font-size: 18px;
+            text-align: center;
+            border-bottom: 2px solid #95a5a6;
+            padding-bottom: 10px;
+        }
+        .constraints-content {
+            background: rgba(255,255,255,0.95);
+            padding: 20px;
+            border-radius: 6px;
+        }
+        .constraints-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            font-size: 13px;
+        }
+        .summary-footer {
+            background: #34495e;
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .summary-footer p {
+            margin: 0;
+            font-size: 14px;
+        }
+        .insights-section {
+            background: #2c3e50;
+            padding: 30px;
+            border-radius: 10px;
+            margin: 20px 0;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+        }
+        .insights-section h2 {
+            color: white;
+            text-align: center;
+            margin: 0 0 20px 0;
+            font-size: 28px;
+        }
+        .insights-section > p {
+            color: #bdc3c7;
+            text-align: center;
+            margin: 0 0 20px 0;
+            font-size: 14px;
+        }
+        .insight-card {
+            background: rgba(255,255,255,0.95);
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .insight-card h3 {
+            color: #2c3e50;
+            margin: 0 0 15px 0;
+            font-size: 20px;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 8px;
+        }
+        .insight-card-content {
+            font-size: 14px;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Ireland Environmental Data Analysis Dashboard</h1>
+        <p>Multi-Dataset Integration: Water Quality, Air Emissions, and Population Demographics (2009-2024)</p>
+    </div>
+
+    <div class="info-grid">
+        <!-- Data Sources Card -->
+        <div class="info-card">
+            <h3>Data Sources</h3>
+            <div class="info-card-content">
+                <p><strong>Air Emissions (EAA20)</strong></p>
+                <ul>
+                    <li>Source: CSO Ireland</li>
+                    <li>Scope: National aggregates</li>
+                    <li>Records: 735 observations</li>
+                    <li>Coverage: All emission categories</li>
+                </ul>
+                
+                <p><strong>Water Quality (EPA02)</strong></p>
+                <ul>
+                    <li>Source: CSO Ireland</li>
+                    <li>Scope: County-level bathing sites</li>
+                    <li>Records: 249 observations</li>
+                    <li>Scale: 1-4 quality rating</li>
+                </ul>
+                
+                <p><strong>Population (G0420)</strong></p>
+                <ul>
+                    <li>Source: CSO Ireland Census</li>
+                    <li>Year: 2022 baseline</li>
+                    <li>Records: 54 observations</li>
+                    <li>Granularity: County-level</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Data Processing Card -->
+        <div class="info-card">
+            <h3>Processing Methods</h3>
+            <div class="info-card-content">
+                <p><strong>Data Standardization</strong></p>
+                <ul>
+                    <li>Geographic entity normalization</li>
+                    <li>Administrative suffix removal</li>
+                    <li>Non-county entity exclusion</li>
+                    <li>Cross-dataset key matching</li>
+                </ul>
+                
+                <p><strong>Dataset Integration</strong></p>
+                <ul>
+                    <li>National-to-county allocation</li>
+                    <li>Temporal alignment</li>
+                    <li>Multi-source merging</li>
+                    <li>Result: 57 integrated records</li>
+                </ul>
+                
+                <p><strong>Derived Metrics</strong></p>
+                <ul>
+                    <li>Per capita emission rates</li>
+                    <li>Composite pollution indices</li>
+                    <li>Pearson correlation coefficients</li>
+                    <li>Linear trend parameters</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Dashboard Features Card -->
+        <div class="info-card">
+            <h3>Analysis Components</h3>
+            <div class="info-card-content">
+                <p><strong>Visualization Suite</strong></p>
+                <ul>
+                    <li>18 analytical visualizations</li>
+                    <li>Census period comparisons (2011, 2016, 2022)</li>
+                    <li>15-year emission trends (2009-2023)</li>
+                    <li>Recent water quality (2021-2024)</li>
+                    <li>Year-over-year growth metrics</li>
+                </ul>
+                
+                <p><strong>Geographic Coverage</strong></p>
+                <ul>
+                    <li>15 Irish counties analyzed</li>
+                    <li>4-year observation window</li>
+                    <li>Multi-variable correlation analysis</li>
+                    <li>Interactive filtering capabilities</li>
+                </ul>
+                
+                <p><strong>Interactive Features</strong></p>
+                <ul>
+                    <li>Hover tooltips with data values</li>
+                    <li>Legend-based series filtering</li>
+                    <li>Pan and zoom functionality</li>
+                    <li>Cross-county comparisons</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="constraints-section">
+        <h3>Data Constraints and Analytical Methods</h3>
+        <div class="constraints-content">
+            <div class="constraints-grid">
+                <div>
+                    <p><strong>Known Data Constraints:</strong></p>
+                    <ul>
+                        <li><strong>Emissions:</strong> National aggregates only; county-level disaggregation unavailable in source data</li>
+                        <li><strong>Demographics:</strong> Single census year (2022); temporal gaps filled via forward propagation</li>
+                        <li><strong>Water Quality:</strong> Limited to designated bathing sites; not representative of all water bodies</li>
+                        <li><strong>Geographic Scope:</strong> Partial county coverage due to data availability constraints</li>
+                    </ul>
+                    
+                    <p><strong>Data Quality Indicators:</strong></p>
+                    <ul>
+                        <li>Primary sources: Central Statistics Office Ireland</li>
+                        <li>Temporal coverage: 2021-2024 (water quality)</li>
+                        <li>Emission inventory: Complete national time series</li>
+                        <li>Spatial resolution: County administrative boundaries</li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <p><strong>Analytical Methodology:</strong></p>
+                    <ul>
+                        <li><strong>Pollution Index:</strong> Composite metric derived from multi-pollutant aggregation</li>
+                        <li><strong>County Allocation:</strong> Population-weighted distribution of national emissions</li>
+                        <li><strong>Water Quality:</strong> Site-level measurements averaged to county scale</li>
+                        <li><strong>Statistical Tests:</strong> Pearson correlation with significance testing</li>
+                    </ul>
+                    
+                    <p><strong>Visualization Methods:</strong></p>
+                    <ul>
+                        <li>Time series: Temporal trend identification</li>
+                        <li>Scatter plots: Bivariate relationship analysis</li>
+                        <li>Heatmaps: Correlation matrix representation</li>
+                        <li>Bar charts: Cross-sectional comparisons</li>
+                        <li>Box plots: Distribution characterization</li>
+                        <li>Tables: Detailed numerical summaries</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="summary-footer">
+        <p>
+            <strong>Emission Data:</strong> 2009-2023 (15-year series) | 
+            <strong>Water Quality:</strong> 2021-2024 (4-year series) | 
+            <strong>Census Periods:</strong> 2011, 2016, 2022 | 
+            <strong>Geographic Units:</strong> 15 counties | 
+            <strong>Analytical Components:</strong> 18 visualizations across 9 sections
+        </p>
+    </div>
+
+    <!-- Insights section will be injected here -->
+    {{INSIGHTS_SECTION}}
+
+    <!-- Plotly chart will be injected here -->
+    {{PLOTLY_CHART}}
+</body>
+</html>

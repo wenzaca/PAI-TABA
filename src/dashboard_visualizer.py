@@ -14,11 +14,13 @@ import pandas as pd
 import numpy as np
 from typing import Dict, Any
 import logging
+from pathlib import Path
 from src.analysis_results import AnalysisResults
 
 class DashboardVisualizer:
-    def __init__(self, output_dir='output'):
+    def __init__(self, output_dir='output', template_path='templates/dashboard.html'):
         self.output_dir = output_dir
+        self.template_path = template_path
         self.logger = logging.getLogger(__name__)
     
     def create(self, analysis_results: AnalysisResults | Dict[str, Any]) -> None:
@@ -514,179 +516,27 @@ class DashboardVisualizer:
             font=dict(size=10)
         )
         
-        html_header = """
-        <div style="background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%); padding: 30px; border-radius: 10px; margin: 20px 0; box-shadow: 0 8px 20px rgba(0,0,0,0.15);">
-            <h1 style="color: white; text-align: center; margin: 0 0 10px 0; font-size: 32px;">
-                Ireland Environmental Data Analysis Dashboard
-            </h1>
-            <p style="color: #bdc3c7; text-align: center; margin: 0; font-size: 16px;">
-                Multi-Dataset Integration: Water Quality, Air Emissions, and Population Demographics (2009-2024)
-            </p>
-        </div>
-
-        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin: 20px 0;">
-            <!-- Data Sources Card -->
-            <div style="background: #34495e; padding: 20px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
-                <h3 style="color: white; margin: 0 0 15px 0; font-size: 18px; border-bottom: 2px solid #3498db; padding-bottom: 10px;">Data Sources</h3>
-                <div style="background: rgba(255,255,255,0.95); padding: 15px; border-radius: 6px; font-size: 13px;">
-                    <p style="margin: 0 0 10px 0;"><strong>Air Emissions (EAA20)</strong></p>
-                    <ul style="margin: 0 0 15px 0; padding-left: 20px;">
-                        <li>Source: CSO Ireland</li>
-                        <li>Scope: National aggregates</li>
-                        <li>Records: 735 observations</li>
-                        <li>Coverage: All emission categories</li>
-                    </ul>
-                    
-                    <p style="margin: 0 0 10px 0;"><strong>Water Quality (EPA02)</strong></p>
-                    <ul style="margin: 0 0 15px 0; padding-left: 20px;">
-                        <li>Source: CSO Ireland</li>
-                        <li>Scope: County-level bathing sites</li>
-                        <li>Records: 249 observations</li>
-                        <li>Scale: 1-4 quality rating</li>
-                    </ul>
-                    
-                    <p style="margin: 0 0 10px 0;"><strong>Population (G0420)</strong></p>
-                    <ul style="margin: 0; padding-left: 20px;">
-                        <li>Source: CSO Ireland Census</li>
-                        <li>Year: 2022 baseline</li>
-                        <li>Records: 54 observations</li>
-                        <li>Granularity: County-level</li>
-                    </ul>
-                </div>
-            </div>
-
-            <!-- Data Processing Card -->
-            <div style="background: #34495e; padding: 20px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
-                <h3 style="color: white; margin: 0 0 15px 0; font-size: 18px; border-bottom: 2px solid #3498db; padding-bottom: 10px;">Processing Methods</h3>
-                <div style="background: rgba(255,255,255,0.95); padding: 15px; border-radius: 6px; font-size: 13px;">
-                    <p style="margin: 0 0 10px 0;"><strong>Data Standardization</strong></p>
-                    <ul style="margin: 0 0 15px 0; padding-left: 20px;">
-                        <li>Geographic entity normalization</li>
-                        <li>Administrative suffix removal</li>
-                        <li>Non-county entity exclusion</li>
-                        <li>Cross-dataset key matching</li>
-                    </ul>
-                    
-                    <p style="margin: 0 0 10px 0;"><strong>Dataset Integration</strong></p>
-                    <ul style="margin: 0 0 15px 0; padding-left: 20px;">
-                        <li>National-to-county allocation</li>
-                        <li>Temporal alignment</li>
-                        <li>Multi-source merging</li>
-                        <li>Result: 57 integrated records</li>
-                    </ul>
-                    
-                    <p style="margin: 0 0 10px 0;"><strong>Derived Metrics</strong></p>
-                    <ul style="margin: 0; padding-left: 20px;">
-                        <li>Per capita emission rates</li>
-                        <li>Composite pollution indices</li>
-                        <li>Pearson correlation coefficients</li>
-                        <li>Linear trend parameters</li>
-                    </ul>
-                </div>
-            </div>
-
-            <!-- Dashboard Features Card -->
-            <div style="background: #34495e; padding: 20px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
-                <h3 style="color: white; margin: 0 0 15px 0; font-size: 18px; border-bottom: 2px solid #3498db; padding-bottom: 10px;">Analysis Components</h3>
-                <div style="background: rgba(255,255,255,0.95); padding: 15px; border-radius: 6px; font-size: 13px;">
-                    <p style="margin: 0 0 10px 0;"><strong>Visualization Suite</strong></p>
-                    <ul style="margin: 0 0 15px 0; padding-left: 20px;">
-                        <li>18 analytical visualizations</li>
-                        <li>Census period comparisons (2011, 2016, 2022)</li>
-                        <li>15-year emission trends (2009-2023)</li>
-                        <li>Recent water quality (2021-2024)</li>
-                        <li>Year-over-year growth metrics</li>
-                    </ul>
-                    
-                    <p style="margin: 0 0 10px 0;"><strong>Geographic Coverage</strong></p>
-                    <ul style="margin: 0 0 15px 0; padding-left: 20px;">
-                        <li>15 Irish counties analyzed</li>
-                        <li>4-year observation window</li>
-                        <li>Multi-variable correlation analysis</li>
-                        <li>Interactive filtering capabilities</li>
-                    </ul>
-                    
-                    <p style="margin: 0 0 10px 0;"><strong>Interactive Features</strong></p>
-                    <ul style="margin: 0; padding-left: 20px;">
-                        <li>Hover tooltips with data values</li>
-                        <li>Legend-based series filtering</li>
-                        <li>Pan and zoom functionality</li>
-                        <li>Cross-county comparisons</li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-
-        <div style="background: #7f8c8d; padding: 20px; border-radius: 8px; margin: 20px 0; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
-            <h3 style="color: white; margin: 0 0 15px 0; font-size: 18px; text-align: center; border-bottom: 2px solid #95a5a6; padding-bottom: 10px;">Data Constraints and Analytical Methods</h3>
-            <div style="background: rgba(255,255,255,0.95); padding: 20px; border-radius: 6px;">
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; font-size: 13px;">
-                    <div>
-                        <p style="margin: 0 0 10px 0;"><strong>Known Data Constraints:</strong></p>
-                        <ul style="margin: 0 0 15px 0; padding-left: 20px;">
-                            <li><strong>Emissions:</strong> National aggregates only; county-level disaggregation unavailable in source data</li>
-                            <li><strong>Demographics:</strong> Single census year (2022); temporal gaps filled via forward propagation</li>
-                            <li><strong>Water Quality:</strong> Limited to designated bathing sites; not representative of all water bodies</li>
-                            <li><strong>Geographic Scope:</strong> Partial county coverage due to data availability constraints</li>
-                        </ul>
-                        
-                        <p style="margin: 0 0 10px 0;"><strong>Data Quality Indicators:</strong></p>
-                        <ul style="margin: 0; padding-left: 20px;">
-                            <li>Primary sources: Central Statistics Office Ireland</li>
-                            <li>Temporal coverage: 2021-2024 (water quality)</li>
-                            <li>Emission inventory: Complete national time series</li>
-                            <li>Spatial resolution: County administrative boundaries</li>
-                        </ul>
-                    </div>
-                    
-                    <div>
-                        <p style="margin: 0 0 10px 0;"><strong>Analytical Methodology:</strong></p>
-                        <ul style="margin: 0 0 15px 0; padding-left: 20px;">
-                            <li><strong>Pollution Index:</strong> Composite metric derived from multi-pollutant aggregation</li>
-                            <li><strong>County Allocation:</strong> Population-weighted distribution of national emissions</li>
-                            <li><strong>Water Quality:</strong> Site-level measurements averaged to county scale</li>
-                            <li><strong>Statistical Tests:</strong> Pearson correlation with significance testing</li>
-                        </ul>
-                        
-                        <p style="margin: 0 0 10px 0;"><strong>Visualization Methods:</strong></p>
-                        <ul style="margin: 0; padding-left: 20px;">
-                            <li>Time series: Temporal trend identification</li>
-                            <li>Scatter plots: Bivariate relationship analysis</li>
-                            <li>Heatmaps: Correlation matrix representation</li>
-                            <li>Bar charts: Cross-sectional comparisons</li>
-                            <li>Box plots: Distribution characterization</li>
-                            <li>Tables: Detailed numerical summaries</li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div style="background: #34495e; color: white; padding: 15px; border-radius: 8px; margin: 20px 0; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
-            <p style="margin: 0; font-size: 14px;">
-                <strong>Emission Data:</strong> 2009-2023 (15-year series) | 
-                <strong>Water Quality:</strong> 2021-2024 (4-year series) | 
-                <strong>Census Periods:</strong> 2011, 2016, 2022 | 
-                <strong>Geographic Units:</strong> 15 counties | 
-                <strong>Analytical Components:</strong> 18 visualizations across 9 sections
-            </p>
-        </div>
-        """
-        
+        # Generate insights section
         insights_html = self._create_analysis_insights_section(pvp_analysis, pvw_analysis)
-        html_header += insights_html
         
+        # Load template
+        template_path = Path(self.template_path)
+        if not template_path.exists():
+            self.logger.warning(f"Template not found at {template_path}, using fallback")
+            template_content = self._get_fallback_template()
+        else:
+            with open(template_path, 'r', encoding='utf-8') as f:
+                template_content = f.read()
+        
+        # Generate Plotly chart HTML (div only, no full page)
+        plotly_div = fig.to_html(include_plotlyjs='cdn', div_id='plotly-chart', full_html=False)
+        
+        # Inject content into template
+        html_content = template_content.replace('{{INSIGHTS_SECTION}}', insights_html)
+        html_content = html_content.replace('{{PLOTLY_CHART}}', plotly_div)
+        
+        # Write final HTML
         output_path = f'{self.output_dir}/comprehensive_dashboard.html'
-        fig.write_html(output_path)
-        
-        with open(output_path, 'r', encoding='utf-8') as f:
-            html_content = f.read()
-        
-        html_content = html_content.replace(
-            '<body>',
-            f'<body>\n{html_header}\n'
-        )
-        
         with open(output_path, 'w', encoding='utf-8') as f:
             f.write(html_content)
         
@@ -732,24 +582,19 @@ class DashboardVisualizer:
         """Create HTML section documenting multi-dataset analytical findings"""
         
         insights_html = """
-        <div style="background: #2c3e50; padding: 30px; border-radius: 10px; margin: 20px 0; box-shadow: 0 8px 20px rgba(0,0,0,0.15);">
-            <h2 style="color: white; text-align: center; margin: 0 0 20px 0; font-size: 28px;">
-                Multi-Dataset Integration Results
-            </h2>
-            <p style="color: #bdc3c7; text-align: center; margin: 0 0 20px 0; font-size: 14px;">
-                Statistical analysis across census periods (2011, 2016, 2022) and water quality monitoring (2021-2024)
-            </p>
+        <div class="insights-section">
+            <h2>Multi-Dataset Integration Results</h2>
+            <p>Statistical analysis across census periods (2011, 2016, 2022) and water quality monitoring (2021-2024)</p>
         """
 
         insights_html = self._pollution_to_population_graphs(insights_html, pvp_analysis)
-
         insights_html = self._pollution_to_water_graphs(insights_html, pvw_analysis)
 
         # Dataset 3 note
         insights_html += """
-        <div style="background: rgba(255,255,255,0.95); padding: 20px; border-radius: 8px;">
-            <h3 style="color: #2c3e50; margin: 0 0 15px 0; font-size: 20px; border-bottom: 2px solid #3498db; padding-bottom: 8px;">Analysis 3: Integrated Water Quality-Demographics Dataset</h3>
-            <div style="font-size: 14px; line-height: 1.6;">
+        <div class="insight-card">
+            <h3>Analysis 3: Integrated Water Quality-Demographics Dataset</h3>
+            <div class="insight-card-content">
                 <p><strong>Integration Approach:</strong> Primary analytical dataset combining water quality monitoring with demographic census data (visualized in components 1-15 above).</p>
                 <p><strong>Temporal Scope:</strong> Water quality observation period (2021-2024) with 2022 census baseline propagated to non-census years.</p>
                 <p><strong>Analytical Purpose:</strong> Facilitates county-level assessment of water quality temporal patterns within demographic context.</p>
@@ -766,9 +611,9 @@ class DashboardVisualizer:
     def _pollution_to_water_graphs(self, insights_html, pvw_analysis) -> Any:
         if pvw_analysis:
             insights_html += """
-            <div style="background: rgba(255,255,255,0.95); padding: 20px; border-radius: 8px; margin-bottom: 20px;">
-                <h3 style="color: #2c3e50; margin: 0 0 15px 0; font-size: 20px; border-bottom: 2px solid #3498db; padding-bottom: 8px;">Analysis 2: Emissions-Water Quality Relationship</h3>
-                <div style="font-size: 14px; line-height: 1.6;">
+            <div class="insight-card">
+                <h3>Analysis 2: Emissions-Water Quality Relationship</h3>
+                <div class="insight-card-content">
             """
 
             if 'years_covered' in pvw_analysis:
@@ -815,9 +660,9 @@ class DashboardVisualizer:
     def _pollution_to_population_graphs(self, insights_html, pvp_analysis) -> Any:
         if pvp_analysis:
             insights_html += """
-            <div style="background: rgba(255,255,255,0.95); padding: 20px; border-radius: 8px; margin-bottom: 20px;">
-                <h3 style="color: #2c3e50; margin: 0 0 15px 0; font-size: 20px; border-bottom: 2px solid #3498db; padding-bottom: 8px;">Analysis 1: Emissions-Demographics Relationship (Census Periods)</h3>
-                <div style="font-size: 14px; line-height: 1.6;">
+            <div class="insight-card">
+                <h3>Analysis 1: Emissions-Demographics Relationship (Census Periods)</h3>
+                <div class="insight-card-content">
             """
 
             if 'census_years' in pvp_analysis:
@@ -854,3 +699,18 @@ class DashboardVisualizer:
             </div>
             """
         return insights_html
+
+    def _get_fallback_template(self) -> str:
+        """Fallback template if template file is not found"""
+        return """<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Ireland Environmental Analysis Dashboard</title>
+</head>
+<body>
+    <h1>Ireland Environmental Analysis Dashboard</h1>
+    {{INSIGHTS_SECTION}}
+    {{PLOTLY_CHART}}
+</body>
+</html>"""

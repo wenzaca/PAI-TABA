@@ -5,35 +5,27 @@ Ireland Environmental-Population Resilience Analysis
 Course: Programming for AI - TABA
 """
 
+import os
 import logging
 from src.data_collector import DataCollector
 from src.database_manager import DatabaseManager
 from src.data_processor import DataProcessor
 from src.analyzer import IrelandDataAnalyzer
 from src.dashboard_visualizer import DashboardVisualizer
-from config import get_config, create_directories
 
 def setup_logging():
     """Configure logging for the application"""
-    create_directories()
-    log_config = get_config('logging')
+    os.makedirs('data', exist_ok=True)
+    os.makedirs('output', exist_ok=True)
+    os.makedirs('logs', exist_ok=True)
     
-    handlers = _create_log_handlers(log_config)
-    _configure_logging(log_config, handlers)
-
-def _create_log_handlers(log_config: dict) -> list:
-    """Create logging handlers for file and console output"""
-    return [
-        logging.FileHandler(log_config['file_handler']['filename']),
-        logging.StreamHandler()
-    ]
-
-def _configure_logging(log_config: dict, handlers: list) -> None:
-    """Configure basic logging with specified handlers"""
     logging.basicConfig(
-        level=getattr(logging, log_config['level']),
-        format=log_config['format'],
-        handlers=handlers
+        level=logging.INFO,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        handlers=[
+            logging.FileHandler('logs/app.log'),
+            logging.StreamHandler()
+        ]
     )
 
 def main():
