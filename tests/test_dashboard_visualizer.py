@@ -159,6 +159,57 @@ class TestDashboardVisualizer(unittest.TestCase):
             self.assertTrue(os.path.exists(output_file))
         except Exception as e:
             self.fail(f"Dashboard creation failed with minimal data: {str(e)}")
+    
+    def test_population_widgets_with_pvp_data(self):
+        """Test that widgets 6, 7, and 15 use pollution_vs_population data when available"""
+        # Create pollution_vs_population data with census years
+        pvp_data = pd.DataFrame({
+            'county': ['Cork', 'Dublin', 'Galway', 'Cork', 'Dublin', 'Galway'],
+            'year': [2011, 2011, 2011, 2022, 2022, 2022],
+            'census_year': [2011, 2011, 2011, 2022, 2022, 2022],
+            'population': [500000, 1200000, 250000, 550000, 1300000, 260000],
+            'total_national_population': [4500000, 4500000, 4500000, 5100000, 5100000, 5100000],
+            'total_emissions': [50000, 50000, 50000, 52000, 52000, 52000],
+            'pollution_index': [80, 90, 70, 82, 92, 68]
+        })
+        
+        results_with_pvp = {
+            'processed_data': {
+                'integrated': self.sample_integrated,
+                'pollution': self.sample_pollution,
+                'pollution_vs_population': pvp_data,
+                'pollution_vs_water': pd.DataFrame()
+            },
+            'correlations': {
+                'overall': TestDataGenerator.create_correlation_matrix(),
+                'pollution_water': pd.DataFrame()
+            },
+            'trends': {
+                'annual_means': pd.DataFrame(),
+                'trend_strength': {}
+            },
+            'county_analysis': {},
+            'pollution_vs_population_analysis': {},
+            'pollution_vs_water_analysis': {}
+        }
+        
+        # Should create dashboard successfully with pvp data
+        try:
+            self.visualizer.create(results_with_pvp)
+            output_file = os.path.join(self.temp_dir, 'comprehensive_dashboard.html')
+            self.assertTrue(os.path.exists(output_file))
+            
+            # Verify the HTML contains population-related content
+            with open(output_file, 'r', encoding='utf-8') as f:
+                html_content = f.read()
+            
+            # Check that population widgets are present
+            self.assertIn('Population Growth per County', html_content)
+            self.assertIn('National Population Growth', html_content)
+            self.assertIn('Population-Pollution Correlation', html_content)
+            
+        except Exception as e:
+            self.fail(f"Dashboard creation failed with pollution_vs_population data: {str(e)}")
 
 
 if __name__ == '__main__':

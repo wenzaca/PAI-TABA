@@ -283,13 +283,16 @@ class DashboardVisualizer:
     def _add_population_widgets(self, fig: go.Figure, analysis_dict: Dict[str, Any]) -> None:
         """Add population visualization widgets (6, 7, 8, 11, 15)"""
         integrated_df = analysis_dict['processed_data']['integrated']
-        pvp_df = analysis_dict['processed_data'].get('population_vs_pollution', pd.DataFrame())
+        pvp_df = analysis_dict['processed_data'].get('pollution_vs_population', pd.DataFrame())
+        
+        # Use pvp_df if available, otherwise use integrated_df as fallback
+        pop_data = pvp_df if not pvp_df.empty else integrated_df
         
         # Widget 6: Population Growth per County (Year-over-Year)
-        if not pvp_df.empty and 'population' in pvp_df.columns:
-            pvp_sorted = pvp_df.sort_values(['county', 'year'])
-            pvp_sorted['pop_growth_yoy'] = pvp_sorted.groupby('county')['population'].pct_change() * 100
-            growth_data = pvp_sorted[pvp_sorted['pop_growth_yoy'].notna()].copy()
+        if not pop_data.empty and 'population' in pop_data.columns:
+            pop_sorted = pop_data.sort_values(['county', 'year'])
+            pop_sorted['pop_growth_yoy'] = pop_sorted.groupby('county')['population'].pct_change() * 100
+            growth_data = pop_sorted[pop_sorted['pop_growth_yoy'].notna()].copy()
             
             if len(growth_data) > 0:
                 for year in sorted(growth_data['year'].unique()):
@@ -307,15 +310,33 @@ class DashboardVisualizer:
                     )
         
         # Widget 7: National Population Growth (2011, 2016, 2022)
-        if not pvp_df.empty:
-            national_pop_by_year = pvp_df.groupby('year')['population'].sum().reset_index()
+        if not pop_data.empty and 'total_national_population' in pop_data.columns:
+            # Use total_national_population if available (from pvp_df)
+            national_pop_by_year = pop_data.groupby('year')['total_national_population'].first().reset_index()
             national_pop_by_year.columns = ['year', 'total_population']
             
             fig.add_trace(
                 go.Bar(
                     x=national_pop_by_year['year'].astype(str),
                     y=national_pop_by_year['total_population'],
-                    marker=dict(color=['#3498db', '#2ecc71', '#e74c3c']),
+                    marker=dict(color=['#3498db', '#2ecc71', '#e74c3c'] if len(national_pop_by_year) == 3 else 'blue'),
+                    text=[f'{v/1e6:.2f}M' for v in national_pop_by_year['total_population']],
+                    textposition='auto',
+                    showlegend=False,
+                    hovertemplate='<b>Year:</b> %{x}<br><b>Population:</b> %{y:,.0f}<extra></extra>'
+                ),
+                row=4, col=1
+            )
+        elif not pop_data.empty and 'population' in pop_data.columns:
+            # Fallback: sum county populations by year
+            national_pop_by_year = pop_data.groupby('year')['population'].sum().reset_index()
+            national_pop_by_year.columns = ['year', 'total_population']
+            
+            fig.add_trace(
+                go.Bar(
+                    x=national_pop_by_year['year'].astype(str),
+                    y=national_pop_by_year['total_population'],
+                    marker=dict(color='blue'),
                     text=[f'{v/1e6:.2f}M' for v in national_pop_by_year['total_population']],
                     textposition='auto',
                     showlegend=False,
