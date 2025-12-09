@@ -8,6 +8,7 @@ import tempfile
 import pandas as pd
 from src.database_manager import DatabaseManager
 from src.constants import TableNames
+from tests.test_fixtures import TestDataGenerator
 
 
 class TestDatabaseManager(unittest.TestCase):
@@ -22,26 +23,10 @@ class TestDatabaseManager(unittest.TestCase):
         # Initialize database manager with temp database
         self.db_manager = DatabaseManager(db_path=self.temp_db.name)
         
-        # Create sample datasets
-        self.sample_pollution = pd.DataFrame({
-            'county': ['Cork', 'Dublin'],
-            'year': [2022, 2022],
-            'pollutant': ['CO2', 'CO2'],
-            'value': [1000, 1500]
-        })
-        
-        self.sample_water = pd.DataFrame({
-            'county': ['Cork', 'Dublin'],
-            'year': [2022, 2022],
-            'classification': ['Excellent', 'Good'],
-            'quality_score': [4, 3]
-        })
-        
-        self.sample_population = pd.DataFrame({
-            'county': ['Cork', 'Dublin'],
-            'year': [2022, 2022],
-            'population': [500000, 1200000]
-        })
+        # Create sample datasets using test fixtures
+        self.sample_pollution = TestDataGenerator.create_sample_pollution_data()
+        self.sample_water = TestDataGenerator.create_sample_water_quality_data()
+        self.sample_population = TestDataGenerator.create_sample_population_data()
         
     def tearDown(self):
         """Clean up temporary database"""
@@ -116,7 +101,7 @@ class TestDatabaseManager(unittest.TestCase):
     def test_empty_dataset_handling(self):
         """Test handling of empty datasets"""
         # Create empty dataframes with at least one column to avoid SQL syntax error
-        empty_df = pd.DataFrame({'dummy': []})
+        empty_df = TestDataGenerator.create_empty_dataframe_with_column()
         datasets = {
             'pollution': empty_df,
             'water_quality': empty_df,

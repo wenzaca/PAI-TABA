@@ -9,6 +9,7 @@ import shutil
 import pandas as pd
 from src.dashboard_visualizer import DashboardVisualizer
 from src.analysis_results import AnalysisResults
+from tests.test_fixtures import TestDataGenerator
 
 
 class TestDashboardVisualizer(unittest.TestCase):
@@ -20,26 +21,9 @@ class TestDashboardVisualizer(unittest.TestCase):
         self.temp_dir = tempfile.mkdtemp()
         self.visualizer = DashboardVisualizer(output_dir=self.temp_dir)
         
-        # Create sample analysis results
-        self.sample_integrated = pd.DataFrame({
-            'county': ['Cork', 'Dublin', 'Galway'] * 2,
-            'year': [2021, 2021, 2021, 2022, 2022, 2022],
-            'pollution_index': [80, 90, 70, 82, 92, 68],
-            'avg_quality_score': [3.5, 3.0, 3.8, 3.6, 2.9, 3.9],
-            'population': [500000, 1200000, 250000, 510000, 1250000, 255000],
-            'total_emissions': [50000, 50000, 50000, 51000, 51000, 51000],
-            'total_national_population': [5000000, 5000000, 5000000, 5100000, 5100000, 5100000],
-            'estimated_county_emissions': [5000, 12000, 2500, 5100, 12500, 2550],
-            'percent_good_or_better': [85, 75, 90, 87, 73, 92],
-            'percent_excellent': [60, 50, 70, 62, 48, 72]
-        })
-        
-        self.sample_pollution = pd.DataFrame({
-            'county': ['Ireland'] * 4,
-            'year': [2021, 2022, 2023, 2024],
-            'pollution_index': [80, 82, 81, 79],
-            'total_emissions': [50000, 51000, 50500, 49000]
-        })
+        # Create sample analysis results using test fixtures
+        self.sample_integrated = TestDataGenerator.create_integrated_dataset()
+        self.sample_pollution = TestDataGenerator.create_pollution_time_series()
         
         self.sample_results = {
             'processed_data': {
@@ -49,10 +33,7 @@ class TestDashboardVisualizer(unittest.TestCase):
                 'pollution_vs_water': pd.DataFrame()
             },
             'correlations': {
-                'overall': pd.DataFrame({
-                    'pollution_index': [1.0, -0.5],
-                    'avg_quality_score': [-0.5, 1.0]
-                }, index=['pollution_index', 'avg_quality_score']),
+                'overall': TestDataGenerator.create_correlation_matrix(),
                 'pollution_water': pd.DataFrame()
             },
             'trends': {
@@ -151,20 +132,8 @@ class TestDashboardVisualizer(unittest.TestCase):
     def test_empty_data_handling(self):
         """Test handling of minimal datasets"""
         # Create minimal data with required columns
-        minimal_integrated = pd.DataFrame({
-            'county': ['Cork'],
-            'year': [2022],
-            'pollution_index': [80],
-            'avg_quality_score': [3.5],
-            'population': [500000]
-        })
-        
-        minimal_pollution = pd.DataFrame({
-            'county': ['Ireland'],
-            'year': [2022],
-            'pollution_index': [80],
-            'total_emissions': [50000]
-        })
+        minimal_integrated = TestDataGenerator.create_minimal_integrated_dataset()
+        minimal_pollution = TestDataGenerator.create_minimal_pollution_dataset()
         
         minimal_results = {
             'processed_data': {

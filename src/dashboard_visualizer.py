@@ -704,7 +704,7 @@ class DashboardVisualizer:
             borderpad=5
         )
         
-        self.logger.info(f"Comprehensive dashboard created with 15 widgets: {output_path}")
+        self.logger.info(f"Comprehensive dashboard created with 18 widgets: {output_path}")
         
         print(f"\n{'='*60}")
         print("DASHBOARD CREATED")

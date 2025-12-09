@@ -7,6 +7,7 @@ import pandas as pd
 import numpy as np
 from src.data_processor import DataProcessor
 from src.constants import WaterQualityColumns, PollutionColumns, PopulationColumns
+from tests.test_fixtures import TestDataGenerator
 
 
 class TestDataProcessor(unittest.TestCase):
@@ -33,14 +34,7 @@ class TestDataProcessor(unittest.TestCase):
     def test_process_pollution_data_national(self):
         """Test processing national-level pollution data"""
         # Create sample national pollution data
-        data = {
-            PollutionColumns.COUNTY: ['Ireland', 'Ireland', 'Ireland'],
-            PollutionColumns.YEAR: [2020, 2020, 2021],
-            PollutionColumns.POLLUTANT: ['CO2', 'NOx', 'CO2'],
-            PollutionColumns.VALUE: [1000, 50, 1100],
-            'geographic_level': ['National', 'National', 'National']
-        }
-        df = pd.DataFrame(data)
+        df = TestDataGenerator.create_national_pollution_data()
         
         result = self.processor._process_pollution_data(df)
         
@@ -57,14 +51,7 @@ class TestDataProcessor(unittest.TestCase):
     def test_process_water_quality_data(self):
         """Test processing water quality data"""
         # Create sample water quality data
-        data = {
-            WaterQualityColumns.COUNTY: ['Cork County Council', 'Dublin City Council', 'Cork County Council'],
-            WaterQualityColumns.YEAR: [2022, 2022, 2023],
-            WaterQualityColumns.CLASSIFICATION: ['Excellent', 'Good', 'Excellent'],
-            WaterQualityColumns.QUALITY_SCORE: [4, 3, 4],
-            WaterQualityColumns.SITE_CODE: ['SITE1', 'SITE2', 'SITE3']
-        }
-        df = pd.DataFrame(data)
+        df = TestDataGenerator.create_detailed_water_quality_data()
         
         result = self.processor._process_water_quality_data(df)
         
@@ -80,14 +67,7 @@ class TestDataProcessor(unittest.TestCase):
     def test_process_population_data(self):
         """Test processing population data"""
         # Create sample population data
-        data = {
-            PopulationColumns.COUNTY: ['Cork', 'Dublin', 'Cork'],
-            PopulationColumns.YEAR: [2011, 2011, 2022],
-            PopulationColumns.POPULATION: [500000, 1200000, 550000],
-            'census_year': [2011, 2011, 2022],
-            'statistic': ['Population per County', 'Population per County', 'Population per County']
-        }
-        df = pd.DataFrame(data)
+        df = TestDataGenerator.create_detailed_population_data()
         
         result = self.processor._process_population_data(df)
         
@@ -101,13 +81,7 @@ class TestDataProcessor(unittest.TestCase):
     def test_add_estimated_county_emissions(self):
         """Test calculation of estimated county emissions"""
         # Create sample population data with census_year column
-        population_data = {
-            'county': ['Cork', 'Dublin'],
-            'year': [2022, 2022],
-            'census_year': [2022, 2022],
-            'population': [500000, 1200000]
-        }
-        pop_df = pd.DataFrame(population_data)
+        pop_df = TestDataGenerator.create_population_with_emissions()
         
         # Create sample pollution data
         pollution_data = {

@@ -5,7 +5,6 @@ from dataclasses import dataclass, field
 from typing import Dict, Any, List
 import pandas as pd
 
-
 @dataclass
 class ProcessedData:
     """Container for processed dataframes"""

@@ -7,15 +7,14 @@ import requests
 import pandas as pd
 import json
 import logging
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Optional
 from datetime import datetime
 import io
+from src.fallback_data_generator import FallbackDataGenerator
 
 
 class DataCollector:
     """Collects pollution, water quality, and population data from Irish government sources"""
-    
-    FALLBACK_ANALYSIS_YEARS = list(range(2015, 2025))
     
     def __init__(self):
         self.logger = logging.getLogger(__name__)
@@ -24,6 +23,7 @@ class DataCollector:
             'epa_bathing': 'https://epawebapp.epa.ie/bathingwater/api',
             'data_gov': 'https://data.gov.ie/api/3/action'
         }
+        self._fallback_generator: Optional[FallbackDataGenerator] = None
         
     def collect_all_datasets(self) -> Dict[str, pd.DataFrame]:
         """Collect all required datasets for pollution-water-population analysis"""
@@ -67,7 +67,7 @@ class DataCollector:
             self.logger.error(f"Error collecting pollution data: {str(e)}")
         
         self.logger.warning("Using FALLBACK pollution data")
-        return self._generate_fallback_pollution_data()
+        return self._get_fallback_generator().generate_pollution_data()
     
     def _collect_water_quality_data(self) -> pd.DataFrame:
         """
@@ -98,11 +98,11 @@ class DataCollector:
                 return df
             
             self.logger.warning("No water quality data available from CSO, using fallback")
-            return self._generate_fallback_water_data()
+            return self._get_fallback_generator().generate_water_quality_data()
                 
         except Exception as e:
             self.logger.error(f"Error collecting water quality data: {str(e)}")
-            return self._generate_fallback_water_data()
+            return self._get_fallback_generator().generate_water_quality_data()
     
     def _collect_population_data(self) -> pd.DataFrame:
         """
@@ -148,7 +148,7 @@ class DataCollector:
             combined_df = pd.concat(all_population_data, ignore_index=True)
             return combined_df
         else:
-            return self._generate_fallback_population_data()
+            return self._get_fallback_generator().generate_population_data()
     
     def _parse_cso_jsonstat(self, data: dict, dataset_type: str) -> List[Dict]:
         """Parse CSO JSON-stat 2.0 format data"""
@@ -252,126 +252,13 @@ class DataCollector:
         
         return df
     
-    def _generate_fallback_pollution_data(self) -> pd.DataFrame:
-        """Generate fallback pollution data for all analysis years"""
-        counties = [
-            'Clare', 'Cork', 'Donegal', 'Dublin', 'Fingal', 'Galway', 'Kerry', 
-            'Leitrim', 'Louth', 'Mayo', 'Meath', 'Sligo', 'Tipperary', 
-            'Waterford', 'Westmeath', 'Wexford', 'Wicklow'
-        ]
-        pollutants = ['CO2', 'NOx', 'SO2', 'PM2.5', 'PM10']
-        
-        data = []
-        for county in counties:
-            for year in self.FALLBACK_ANALYSIS_YEARS:
-                for pollutant in pollutants:
-                    base_value = hash(f"{county}{pollutant}") % 1000 + 500
-                    # Realistic trend: slight decrease in pollution over time
-                    year_factor = 1 - (year - 2011) * 0.015
-                    value = base_value * year_factor
-                    
-                    data.append({
-                        'county': county,
-                        'year': year,
-                        'pollutant': pollutant,
-                        'value': value
-                    })
-        
-        return pd.DataFrame(data)
-    
-    def _generate_fallback_water_data(self) -> pd.DataFrame:
-        """Generate fallback water quality data with realistic trends"""
-        counties = [
-            'Clare', 'Cork', 'Donegal', 'Dublin', 'Fingal', 'Galway', 'Kerry', 
-            'Leitrim', 'Louth', 'Mayo', 'Meath', 'Sligo', 'Tipperary', 
-            'Waterford', 'Westmeath', 'Wexford', 'Wicklow'
-        ]
-        classifications = ['Excellent', 'Good', 'Sufficient', 'Poor']
-        
-        classification_scores = {'Excellent': 4, 'Good': 3, 'Sufficient': 2, 'Poor': 1}
-        
-        data = []
-        for i, county in enumerate(counties):
-            num_sites = 2 + (i % 3)
-            
-            for j in range(num_sites):
-                site_base_quality = (i + j) % 4
-                
-                for year in self.FALLBACK_ANALYSIS_YEARS:
-                    year_improvement = (year - 2015) * 0.05
-                    quality_score = min(4, site_base_quality + year_improvement)
-                    
-                    if quality_score >= 3.5:
-                        classification = 'Excellent'
-                    elif quality_score >= 2.5:
-                        classification = 'Good'
-                    elif quality_score >= 1.5:
-                        classification = 'Sufficient'
-                    else:
-                        classification = 'Poor'
-                    
-                    data.append({
-                        'site_code': f'IE_{county[:3].upper()}_{j:03d}',
-                        'site_name': f'{county} Beach {j+1}',
-                        'county': county,
-                        'water_type': 'Coastal',
-                        'classification': classification,
-                        'year': year,
-                        'quality_score': quality_score
-                    })
-        
-        return pd.DataFrame(data)
-    
-    def _generate_fallback_population_data(self) -> pd.DataFrame:
-        """Generate fallback population data with interpolation"""
-        counties = {
-            'Clare': 117196,
-            'Cork': 519032,
-            'Donegal': 161137,
-            'Dublin': 1273069,
-            'Fingal': 273991,
-            'Galway': 250541,
-            'Kerry': 145502,
-            'Leitrim': 31798,
-            'Louth': 122516,
-            'Mayo': 130507,
-            'Meath': 184135,
-            'Sligo': 65393,
-            'Tipperary': 158754,
-            'Waterford': 113795,
-            'Westmeath': 86164,
-            'Wexford': 145273,
-            'Wicklow': 136640
-        }
-        
-        census_data = {
-            2011: 1.0,
-            2016: 1.035,
-            2022: 1.08
-        }
-        
-        data = []
-        for county, base_pop_2011 in counties.items():
-            for year in self.FALLBACK_ANALYSIS_YEARS:
-                if year <= 2011:
-                    growth_factor = 1.0
-                elif year <= 2016:
-                    progress = (year - 2011) / (2016 - 2011)
-                    growth_factor = 1.0 + progress * (1.035 - 1.0)
-                elif year <= 2022:
-                    progress = (year - 2016) / (2022 - 2016)
-                    growth_factor = 1.035 + progress * (1.08 - 1.035)
-                else:
-                    years_beyond = year - 2022
-                    annual_growth = (1.08 - 1.035) / (2022 - 2016)
-                    growth_factor = 1.08 + (years_beyond * annual_growth)
-                
-                population = int(base_pop_2011 * growth_factor)
-                
-                data.append({
-                    'county': county,
-                    'year': year,
-                    'population': population
-                })
-        
-        return pd.DataFrame(data)
+    def _get_fallback_generator(self) -> FallbackDataGenerator:
+        """
+        Lazy initialization of fallback data generator
+        Only creates the generator when fallback data is actually needed
+        """
+        if self._fallback_generator is None:
+            self.logger.info("Initializing fallback data generator")
+            self._fallback_generator = FallbackDataGenerator()
+        return self._fallback_generator
+
