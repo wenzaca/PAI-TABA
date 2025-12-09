@@ -621,8 +621,7 @@ class DashboardVisualizer:
         """Generate and save the dashboard HTML"""
         pvp_analysis = analysis_dict.get('analysis', {}).get('population_vs_pollution', {})
         pvw_analysis = analysis_dict.get('analysis', {}).get('pollution_vs_water', {})
-        
-        # Generate insights section
+
         insights_html = self._create_analysis_insights_section(pvp_analysis, pvw_analysis)
         
         # Load template
@@ -637,7 +636,6 @@ class DashboardVisualizer:
         # Generate Plotly chart HTML (div only, no full page)
         plotly_div = fig.to_html(include_plotlyjs='cdn', div_id='plotly-chart', full_html=False)
         
-        # Inject content into template
         html_content = template_content.replace('{{INSIGHTS_SECTION}}', insights_html)
         html_content = html_content.replace('{{PLOTLY_CHART}}', plotly_div)
         
