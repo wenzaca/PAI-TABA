@@ -602,124 +602,118 @@ class DashboardVisualizer:
     def _create_analysis_insights_section(self, pvp_analysis: Dict[str, Any], pvw_analysis: Dict[str, Any]) -> str:
         """Create HTML section documenting multi-dataset analytical findings"""
         
-        insights_html = """
-        <div class="insights-section">
-            <h2>Multi-Dataset Integration Results</h2>
-            <p>Statistical analysis across census periods (2011, 2016, 2022) and water quality monitoring (2021-2024)</p>
-        """
-
-        insights_html = self._pollution_to_population_graphs(insights_html, pvp_analysis)
-        insights_html = self._pollution_to_water_graphs(insights_html, pvw_analysis)
-
-        # Dataset 3 note
-        insights_html += """
-        <div class="insight-card">
-            <h3>Analysis 3: Integrated Water Quality-Demographics Dataset</h3>
-            <div class="insight-card-content">
-                <p><strong>Integration Approach:</strong> Primary analytical dataset combining water quality monitoring with demographic census data (visualized in components 1-15 above).</p>
-                <p><strong>Temporal Scope:</strong> Water quality observation period (2021-2024) with 2022 census baseline propagated to non-census years.</p>
-                <p><strong>Analytical Purpose:</strong> Facilitates county-level assessment of water quality temporal patterns within demographic context.</p>
-            </div>
-        </div>
-        """
+        # Load insight card template
+        card_template = self._load_insight_card_template()
         
-        insights_html += """
-        </div>
-        """
-        
-        return insights_html
+        insights_html = '<div class="insights-section">'
+        insights_html += '<h2>Multi-Dataset Integration Results</h2>'
+        insights_html += '<p>Statistical analysis across census periods (2011, 2016, 2022) and water quality monitoring (2021-2024)</p>'
 
-    def _pollution_to_water_graphs(self, insights_html, pvw_analysis) -> Any:
-        if pvw_analysis:
-            insights_html += """
-            <div class="insight-card">
-                <h3>Analysis 2: Emissions-Water Quality Relationship</h3>
-                <div class="insight-card-content">
-            """
-
-            if 'years_covered' in pvw_analysis:
-                years = pvw_analysis['years_covered']
-                insights_html += f"<p><strong>Temporal Coverage:</strong> {', '.join(map(str, years))}</p>"
-
-            if 'pollution_water_correlation' in pvw_analysis:
-                corr = pvw_analysis['pollution_water_correlation']
-                sig_text = "statistically significant (p < 0.05)" if corr.get('significant',
-                                                                              False) else "not statistically significant (p ≥ 0.05)"
-                interp = corr.get('interpretation', 'unknown')
-                insights_html += f"""
-                <p><strong>Emissions-Water Quality Correlation Coefficient:</strong> r = {corr.get('coefficient', 0):.3f} ({sig_text})</p>
-                <p style="margin-left: 20px; color: #555;">Relationship Strength: {interp.capitalize()}</p>
-                """
-
-            if 'pollution_trend' in pvw_analysis:
-                trend = pvw_analysis['pollution_trend']
-                insights_html += f"""
-                <p><strong>Emission Temporal Trend:</strong> {trend.get('direction', 'unknown').capitalize()} trajectory (R² = {trend.get('r_squared', 0):.3f})</p>
-                """
-
-            if 'water_quality_trend' in pvw_analysis:
-                trend = pvw_analysis['water_quality_trend']
-                insights_html += f"""
-                <p><strong>Water Quality Temporal Trend:</strong> {trend.get('direction', 'unknown').capitalize()} trajectory (R² = {trend.get('r_squared', 0):.3f})</p>
-                """
-
-            if 'best_water_county' in pvw_analysis and 'worst_water_county' in pvw_analysis:
-                insights_html += f"""
-                <p><strong>Water Quality Performance Rankings:</strong></p>
-                <ul style="margin: 5px 0 0 20px;">
-                    <li>Highest Quality: {pvw_analysis['best_water_county']}</li>
-                    <li>Lowest Quality: {pvw_analysis['worst_water_county']}</li>
-                </ul>
-                """
-
-            insights_html += """
-                </div>
-            </div>
-            """
-        return insights_html
-
-    def _pollution_to_population_graphs(self, insights_html, pvp_analysis) -> Any:
+        # Analysis 1: Population-Emissions
         if pvp_analysis:
-            insights_html += """
-            <div class="insight-card">
-                <h3>Analysis 1: Emissions-Demographics Relationship (Census Periods)</h3>
-                <div class="insight-card-content">
-            """
+            content = self._build_pvp_content(pvp_analysis)
+            insights_html += card_template.replace('{{TITLE}}', 'Analysis 1: Emissions-Demographics Relationship (Census Periods)')
+            insights_html = insights_html.replace('{{CONTENT}}', content)
 
-            if 'census_years' in pvp_analysis:
-                census_years = pvp_analysis['census_years']
-                insights_html += f"<p><strong>Census Observation Points:</strong> {', '.join(map(str, census_years))}</p>"
+        # Analysis 2: Emissions-Water Quality
+        if pvw_analysis:
+            content = self._build_pvw_content(pvw_analysis)
+            insights_html += card_template.replace('{{TITLE}}', 'Analysis 2: Emissions-Water Quality Relationship')
+            insights_html = insights_html.replace('{{CONTENT}}', content)
 
-            if 'overall_changes' in pvp_analysis:
-                changes = pvp_analysis['overall_changes']
-                insights_html += f"""
-                <p><strong>National-Level Temporal Changes ({changes.get('years_span', 'N/A')}):</strong></p>
-                <ul style="margin: 5px 0 15px 20px;">
-                    <li>Emission Trajectory: <span style="color: {'#e74c3c' if changes.get('pollution_change_pct', 0) > 0 else '#27ae60'}; font-weight: bold;">{changes.get('pollution_change_pct', 0):.1f}%</span></li>
-                    <li>Population Growth: <span style="color: {'#e67e22' if changes.get('population_change_pct', 0) > 0 else '#3498db'}; font-weight: bold;">{changes.get('population_change_pct', 0):.1f}%</span></li>
-                </ul>
-                """
-
-            if 'population_emissions_correlation' in pvp_analysis:
-                corr = pvp_analysis['population_emissions_correlation']
-                sig_text = "statistically significant (p < 0.05)" if corr.get('significant',
-                                                                              False) else "not statistically significant (p ≥ 0.05)"
-                insights_html += f"""
-                <p><strong>Population-Emissions Correlation Coefficient:</strong> r = {corr.get('coefficient', 0):.3f} ({sig_text})</p>
-                """
-
-            if 'top_growing_counties' in pvp_analysis:
-                top_counties = pvp_analysis['top_growing_counties']
-                insights_html += "<p><strong>Highest Population Growth Rates (Top 5 Counties):</strong></p><ul style='margin: 5px 0 0 20px;'>"
-                for county in top_counties[:5]:
-                    insights_html += f"<li>{county['county']}: +{county['population_change_pct']:.1f}% intercensal change</li>"
-                insights_html += "</ul>"
-
-            insights_html += """
-                </div>
-            </div>
-            """
+        # Analysis 3: Integrated Dataset
+        content = """
+            <p><strong>Integration Approach:</strong> Primary analytical dataset combining water quality monitoring with demographic census data (visualized in components 1-15 above).</p>
+            <p><strong>Temporal Scope:</strong> Water quality observation period (2021-2024) with 2022 census baseline propagated to non-census years.</p>
+            <p><strong>Analytical Purpose:</strong> Facilitates county-level assessment of water quality temporal patterns within demographic context.</p>
+        """
+        insights_html += card_template.replace('{{TITLE}}', 'Analysis 3: Integrated Water Quality-Demographics Dataset')
+        insights_html = insights_html.replace('{{CONTENT}}', content)
+        
+        insights_html += '</div>'
+        
         return insights_html
+
+    def _build_pvw_content(self, pvw_analysis: Dict[str, Any]) -> str:
+        """Build content for pollution vs water analysis"""
+        content_parts = []
+
+        if 'years_covered' in pvw_analysis:
+            years = pvw_analysis['years_covered']
+            content_parts.append(f"<p><strong>Temporal Coverage:</strong> {', '.join(map(str, years))}</p>")
+
+        if 'pollution_water_correlation' in pvw_analysis:
+            corr = pvw_analysis['pollution_water_correlation']
+            sig_text = "statistically significant (p < 0.05)" if corr.get('significant', False) else "not statistically significant (p ≥ 0.05)"
+            interp = corr.get('interpretation', 'unknown')
+            content_parts.append(f"<p><strong>Emissions-Water Quality Correlation Coefficient:</strong> r = {corr.get('coefficient', 0):.3f} ({sig_text})</p>")
+            content_parts.append(f"<p style='margin-left: 20px; color: #555;'>Relationship Strength: {interp.capitalize()}</p>")
+
+        if 'pollution_trend' in pvw_analysis:
+            trend = pvw_analysis['pollution_trend']
+            content_parts.append(f"<p><strong>Emission Temporal Trend:</strong> {trend.get('direction', 'unknown').capitalize()} trajectory (R² = {trend.get('r_squared', 0):.3f})</p>")
+
+        if 'water_quality_trend' in pvw_analysis:
+            trend = pvw_analysis['water_quality_trend']
+            content_parts.append(f"<p><strong>Water Quality Temporal Trend:</strong> {trend.get('direction', 'unknown').capitalize()} trajectory (R² = {trend.get('r_squared', 0):.3f})</p>")
+
+        if 'best_water_county' in pvw_analysis and 'worst_water_county' in pvw_analysis:
+            content_parts.append("<p><strong>Water Quality Performance Rankings:</strong></p>")
+            content_parts.append("<ul style='margin: 5px 0 0 20px;'>")
+            content_parts.append(f"<li>Highest Quality: {pvw_analysis['best_water_county']}</li>")
+            content_parts.append(f"<li>Lowest Quality: {pvw_analysis['worst_water_county']}</li>")
+            content_parts.append("</ul>")
+
+        return '\n'.join(content_parts)
+
+    def _build_pvp_content(self, pvp_analysis: Dict[str, Any]) -> str:
+        """Build content for pollution vs population analysis"""
+        content_parts = []
+
+        if 'census_years' in pvp_analysis:
+            census_years = pvp_analysis['census_years']
+            content_parts.append(f"<p><strong>Census Observation Points:</strong> {', '.join(map(str, census_years))}</p>")
+
+        if 'overall_changes' in pvp_analysis:
+            changes = pvp_analysis['overall_changes']
+            emission_color = '#e74c3c' if changes.get('pollution_change_pct', 0) > 0 else '#27ae60'
+            population_color = '#e67e22' if changes.get('population_change_pct', 0) > 0 else '#3498db'
+            
+            content_parts.append(f"<p><strong>National-Level Temporal Changes ({changes.get('years_span', 'N/A')}):</strong></p>")
+            content_parts.append("<ul style='margin: 5px 0 15px 20px;'>")
+            content_parts.append(f"<li>Emission Trajectory: <span style='color: {emission_color}; font-weight: bold;'>{changes.get('pollution_change_pct', 0):.1f}%</span></li>")
+            content_parts.append(f"<li>Population Growth: <span style='color: {population_color}; font-weight: bold;'>{changes.get('population_change_pct', 0):.1f}%</span></li>")
+            content_parts.append("</ul>")
+
+        if 'population_emissions_correlation' in pvp_analysis:
+            corr = pvp_analysis['population_emissions_correlation']
+            sig_text = "statistically significant (p < 0.05)" if corr.get('significant', False) else "not statistically significant (p ≥ 0.05)"
+            content_parts.append(f"<p><strong>Population-Emissions Correlation Coefficient:</strong> r = {corr.get('coefficient', 0):.3f} ({sig_text})</p>")
+
+        if 'top_growing_counties' in pvp_analysis:
+            top_counties = pvp_analysis['top_growing_counties']
+            content_parts.append("<p><strong>Highest Population Growth Rates (Top 5 Counties):</strong></p>")
+            content_parts.append("<ul style='margin: 5px 0 0 20px;'>")
+            for county in top_counties[:5]:
+                content_parts.append(f"<li>{county['county']}: +{county['population_change_pct']:.1f}% intercensal change</li>")
+            content_parts.append("</ul>")
+
+        return '\n'.join(content_parts)
+
+    def _load_insight_card_template(self) -> str:
+        """Load insight card template"""
+        card_template_path = Path('templates/insight_card.html')
+        if card_template_path.exists():
+            with open(card_template_path, 'r', encoding='utf-8') as f:
+                return f.read()
+        else:
+            # Fallback template
+            return """<div class="insight-card">
+    <h3>{{TITLE}}</h3>
+    <div class="insight-card-content">
+        {{CONTENT}}
+    </div>
+</div>"""
 
     def _get_fallback_template(self) -> str:
         """Fallback template if template file is not found"""
