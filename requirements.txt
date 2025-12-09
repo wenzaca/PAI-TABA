@@ -12,8 +12,6 @@ beautifulsoup4>=4.12.0
 lxml>=4.9.0
 
 # Data visualization
-matplotlib>=3.7.0
-seaborn>=0.12.0
 plotly>=5.15.0
 
 # Statistical analysis

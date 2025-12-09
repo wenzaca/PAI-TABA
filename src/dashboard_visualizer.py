@@ -61,7 +61,7 @@ class DashboardVisualizer:
                 '7. National Population Growth (2011, 2016, 2022)',
                 '8. Population Rankings (Top 12)',
                 '9. Pollution-Water Correlation',
-                '10. Pollution vs Water Quality (All Counties)',
+                '10. Estimated County Emissions vs Water Quality',
                 '11. Population vs Water Quality (2022)',
                 '12. Correlation Analysis',
                 '13. Overall Correlation Matrix',
@@ -218,19 +218,40 @@ class DashboardVisualizer:
                     row=5, col=1
                 )
         
-        for county in integrated_df['county'].unique()[:12]:
-            county_data = integrated_df[integrated_df['county'] == county]
-            fig.add_trace(
-                go.Scatter(
-                    x=county_data['pollution_index'],
-                    y=county_data['avg_quality_score'],
-                    mode='markers',
-                    name=county,
-                    text=county_data['year'],
-                    hovertemplate='<b>%{fullData.name}</b><br>Pollution: %{x:.1f}<br>Water Quality: %{y:.1f}<br>Year: %{text}<extra></extra>'
-                ),
-                row=5, col=2
-            )
+        # Widget 10: Estimated County Emissions vs Water Quality
+        if 'estimated_county_emissions' in integrated_df.columns:
+            # Filter to data with estimated emissions
+            emissions_df = integrated_df.dropna(subset=['estimated_county_emissions'])
+            
+            if len(emissions_df) > 0:
+                for county in emissions_df['county'].unique()[:12]:
+                    county_data = emissions_df[emissions_df['county'] == county]
+                    fig.add_trace(
+                        go.Scatter(
+                            x=county_data['estimated_county_emissions'],
+                            y=county_data['avg_quality_score'],
+                            mode='markers',
+                            name=county,
+                            text=county_data['year'],
+                            hovertemplate='<b>%{fullData.name}</b><br>Est. Emissions: %{x:,.0f} tonnes<br>Water Quality: %{y:.1f}<br>Year: %{text}<extra></extra>'
+                        ),
+                        row=5, col=2
+                    )
+        else:
+            # Fallback to pollution_index if estimated_county_emissions not available
+            for county in integrated_df['county'].unique()[:12]:
+                county_data = integrated_df[integrated_df['county'] == county]
+                fig.add_trace(
+                    go.Scatter(
+                        x=county_data['pollution_index'],
+                        y=county_data['avg_quality_score'],
+                        mode='markers',
+                        name=county,
+                        text=county_data['year'],
+                        hovertemplate='<b>%{fullData.name}</b><br>Pollution Index: %{x:.1f}<br>Water Quality: %{y:.1f}<br>Year: %{text}<extra></extra>'
+                    ),
+                    row=5, col=2
+                )
         
         df_2022 = integrated_df[integrated_df['year'] == 2022].copy()
         if len(df_2022) > 0:
