@@ -261,6 +261,6 @@ This project is for academic purposes as part of the Programming for AI module a
 
 ---
 
-**Course:** Programming for AI - MSCAI1  
+**Course:** Programming for AI - PGDAI  
 **Institution:** National College of Ireland  
 **Due Date:** Monday 17th December 2025
