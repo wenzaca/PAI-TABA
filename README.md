@@ -44,9 +44,6 @@ This project analyzes the relationship between air pollution, water quality, and
 ```
 ├── main.py                 # Main application entry point
 ├── requirements.txt        # Python dependencies
-├── config.py              # Configuration settings
-├── test_setup.py          # Setup verification script
-├── show_results.py        # Results display utility
 ├── README.md              # This file
 ├── src/                   # Source code modules
 │   ├── __init__.py
@@ -56,10 +53,12 @@ This project analyzes the relationship between air pollution, water quality, and
 │   ├── data_processor.py  # Data cleaning, normalization, and integration
 │   ├── analyzer.py        # Statistical analysis and correlation detection
 │   ├── analysis_results.py # Data structures for analysis results
-│   └── dashboard_visualizer.py # Interactive dashboard generation
+│   ├── dashboard_visualizer.py # Interactive dashboard generation
+│   └── fallback_data_generator.py # Fallback data for API failures
 ├── templates/             # HTML templates for dashboard
 │   ├── dashboard.html     # Main dashboard template with styling
-│   └── README.md          # Template documentation
+│   └── insight_card.html  # Insight card template
+├── tests/                 # Unit tests
 ├── data/                  # Database and raw data files
 ├── output/                # Generated visualizations and reports
 └── logs/                  # Application logs
@@ -77,6 +76,16 @@ This project analyzes the relationship between air pollution, water quality, and
 3. **Run the analysis:**
    ```bash
    python main.py
+   ```
+
+4. **Run tests:**
+   ```bash
+   pytest tests/
+   ```
+   
+   Run with coverage:
+   ```bash
+   pytest tests/ --cov=src --cov-report=html
    ```
 
 ## Key Features
@@ -159,7 +168,6 @@ This project analyzes the relationship between air pollution, water quality, and
 - **Plotly:** Interactive dashboard with 18 components
 - **Subplots:** Multi-panel layout organized by analytical theme
 - **Interactive Features:** Hover tooltips, legend filtering, pan/zoom capabilities
-- **Template-Based Design:** Separates HTML/CSS from Python logic for easier customization
 
 ## Usage Examples
 
@@ -200,11 +208,10 @@ county_analysis = results['county_analysis']
 
 ## Configuration
 
-Key settings can be modified in `config.py`:
-- Database paths
-- API endpoints
-- Analysis parameters
-- Visualization settings
+Logging and directory settings are configured in `main.py`:
+- Log file location: `logs/app.log`
+- Output directory: `output/`
+- Data directory: `data/`
 
 ## Output Files
 
@@ -221,7 +228,7 @@ Key Python packages:
 - **scipy** - Statistical analysis (correlation, regression, significance tests)
 - **scikit-learn** - Data preprocessing (StandardScaler)
 - **requests** - CSO StatBank API calls
-- **sqlite3** - Database operations
+- **statsmodels** - Advanced statistical modeling
 
 ## Troubleshooting
 
