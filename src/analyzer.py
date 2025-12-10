@@ -200,6 +200,9 @@ class IrelandDataAnalyzer:
         # Calculate estimated county emissions if possible
         df_with_estimates = self._add_estimated_county_emissions(df)
         
+        # Add national growth rates
+        df_with_growth = self._add_national_growth_rates(df_with_estimates)
+        
         key_columns = [
             IntegratedColumns.POLLUTION_INDEX,
             IntegratedColumns.TOTAL_EMISSIONS,
@@ -212,13 +215,19 @@ class IrelandDataAnalyzer:
         ]
         
         # Add estimated county emissions if available
-        if 'estimated_county_emissions' in df_with_estimates.columns:
+        if 'estimated_county_emissions' in df_with_growth.columns:
             key_columns.append('estimated_county_emissions')
         
-        available_columns = [col for col in key_columns if col in df_with_estimates.columns]
+        # Add national growth rates if available
+        if 'national_population_total_growth' in df_with_growth.columns:
+            key_columns.append('national_population_total_growth')
+        if 'national_emission_total_growth' in df_with_growth.columns:
+            key_columns.append('national_emission_total_growth')
+        
+        available_columns = [col for col in key_columns if col in df_with_growth.columns]
         
         if len(available_columns) >= 2:
-            corr_matrix = df_with_estimates[available_columns].corr()
+            corr_matrix = df_with_growth[available_columns].corr()
             correlations['overall'] = corr_matrix
             
             pollution_cols = [col for col in available_columns if 'pollution' in col.lower() or 'emission' in col.lower()]
@@ -226,15 +235,19 @@ class IrelandDataAnalyzer:
             
             # Pollution-water correlation with estimated emissions
             if pollution_cols and water_cols:
-                pollution_water_corr = df_with_estimates[pollution_cols + water_cols].corr()
-                correlations['pollution_water'] = pollution_water_corr
+                pw_cols = [col for col in pollution_cols + water_cols if col in df_with_growth.columns]
+                if pw_cols:
+                    pollution_water_corr = df_with_growth[pw_cols].corr()
+                    correlations['pollution_water'] = pollution_water_corr
             
             pop_cols = [col for col in available_columns if 'population' in col.lower()]
             env_cols = pollution_cols + water_cols
             
             if pop_cols and env_cols:
-                pop_env_corr = df_with_estimates[pop_cols + env_cols].corr()
-                correlations['population_environment'] = pop_env_corr
+                pe_cols = [col for col in pop_cols + env_cols if col in df_with_growth.columns]
+                if pe_cols:
+                    pop_env_corr = df_with_growth[pe_cols].corr()
+                    correlations['population_environment'] = pop_env_corr
         
         return correlations
     
@@ -252,6 +265,36 @@ class IrelandDataAnalyzer:
                 (df_copy['population'] / df_copy['total_national_population'])
             )
             self.logger.info("Calculated estimated county emissions based on population proportion")
+        
+        return df_copy
+    
+    def _add_national_growth_rates(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Add national population and emission total period growth rates (2011-2022)"""
+        df_copy = df.copy()
+        
+        if 'total_national_population' in df_copy.columns and 'total_emissions' in df_copy.columns:
+            # Calculate national data by year
+            national_data = df_copy.groupby('year').agg({
+                'total_national_population': 'first',
+                'total_emissions': 'first'
+            }).reset_index().sort_values('year')
+            
+            if len(national_data) >= 2:
+                # Get baseline (first year) and final year values
+                baseline_year = national_data.iloc[0]
+                final_year = national_data.iloc[-1]
+                
+                # Calculate total period growth rates (2011-2022)
+                pop_total_growth = ((final_year['total_national_population'] - baseline_year['total_national_population']) / 
+                                   baseline_year['total_national_population'] * 100)
+                emission_total_growth = ((final_year['total_emissions'] - baseline_year['total_emissions']) / 
+                                        baseline_year['total_emissions'] * 100)
+                
+                # Add these as constant values to all rows
+                df_copy['national_population_total_growth'] = pop_total_growth
+                df_copy['national_emission_total_growth'] = emission_total_growth
+                
+                self.logger.info(f"Added total period growth rates: Population {pop_total_growth:.1f}%, Emissions {emission_total_growth:.1f}%")
         
         return df_copy
     

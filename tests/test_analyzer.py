@@ -112,3 +112,17 @@ class TestIrelandDataAnalyzer(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+    def test_add_national_growth_rates(self):
+        """Test calculation of national growth rates"""
+        result = self.analyzer._add_national_growth_rates(self.sample_data)
+        
+        # Check columns are added
+        self.assertTrue('national_population_total_growth' in result.columns)
+        self.assertTrue('national_emission_total_growth' in result.columns)
+        
+        # Check growth rates are calculated correctly
+        expected_pop_growth = ((5100000 - 5000000) / 5000000) * 100  # 2%
+        expected_emission_growth = ((51000 - 50000) / 50000) * 100  # 2%
+        
+        self.assertAlmostEqual(result['national_population_total_growth'].iloc[0], expected_pop_growth, delta=0.1)
+        self.assertAlmostEqual(result['national_emission_total_growth'].iloc[0], expected_emission_growth, delta=0.1)

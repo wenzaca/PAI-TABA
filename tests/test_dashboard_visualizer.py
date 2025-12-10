@@ -123,7 +123,7 @@ class TestDashboardVisualizer(unittest.TestCase):
         }
         
         # Should not raise an error
-        html = self.visualizer._create_analysis_insights_section(pvp_analysis, pvw_analysis)
+        html = self.visualizer._create_analysis_insights_section(pvp_analysis, pvw_analysis, self.sample_results)
         
         # Check HTML contains expected content
         self.assertIn('Multi-Dataset Integration Results', html)
@@ -214,3 +214,37 @@ class TestDashboardVisualizer(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+    def test_calculate_national_period_growth_correlation(self):
+        """Test national period growth correlation calculation"""
+        # Create sample data with pollution_vs_population dataset
+        sample_pvp_data = pd.DataFrame({
+            'year': [2011, 2016, 2022],
+            'total_national_population': [4500000, 4750000, 5000000],
+            'total_emissions': [45000, 47500, 50000]
+        })
+        
+        analysis_dict = {
+            'processed_data': {
+                'pollution_vs_population': sample_pvp_data,
+                'integrated': pd.DataFrame()
+            }
+        }
+        
+        result = self.visualizer._calculate_national_period_growth_correlation(analysis_dict)
+        
+        # Check result structure
+        self.assertIn('baseline_year', result)
+        self.assertIn('final_year', result)
+        self.assertIn('population_growth_pct', result)
+        self.assertIn('emission_growth_pct', result)
+        self.assertIn('correlation_coefficient', result)
+        
+        # Check calculations
+        self.assertEqual(result['baseline_year'], 2011)
+        self.assertEqual(result['final_year'], 2022)
+        
+        # Population growth: (5M - 4.5M) / 4.5M * 100 = 11.11%
+        self.assertAlmostEqual(result['population_growth_pct'], 11.11, delta=0.1)
+        
+        # Emission growth: (50K - 45K) / 45K * 100 = 11.11%
+        self.assertAlmostEqual(result['emission_growth_pct'], 11.11, delta=0.1)

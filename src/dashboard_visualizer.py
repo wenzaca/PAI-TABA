@@ -640,10 +640,10 @@ class DashboardVisualizer:
     
     def _save_dashboard(self, fig: go.Figure, analysis_dict: Dict[str, Any]) -> None:
         """Generate and save the dashboard HTML"""
-        pvp_analysis = analysis_dict.get('analysis', {}).get('population_vs_pollution', {})
-        pvw_analysis = analysis_dict.get('analysis', {}).get('pollution_vs_water', {})
+        pvp_analysis = analysis_dict.get('pollution_vs_population_analysis', {})
+        pvw_analysis = analysis_dict.get('pollution_vs_water_analysis', {})
 
-        insights_html = self._create_analysis_insights_section(pvp_analysis, pvw_analysis)
+        insights_html = self._create_analysis_insights_section(pvp_analysis, pvw_analysis, analysis_dict)
         
         # Load template
         template_path = Path(self.template_path)
@@ -693,7 +693,7 @@ class DashboardVisualizer:
         print(f"{'='*60}\n")
 
     
-    def _create_analysis_insights_section(self, pvp_analysis: Dict[str, Any], pvw_analysis: Dict[str, Any]) -> str:
+    def _create_analysis_insights_section(self, pvp_analysis: Dict[str, Any], pvw_analysis: Dict[str, Any], analysis_dict: Dict[str, Any]) -> str:
         """Create HTML section documenting multi-dataset analytical findings"""
         
         # Load insight card template
@@ -715,13 +715,20 @@ class DashboardVisualizer:
             insights_html += card_template.replace('{{TITLE}}', 'Analysis 2: Emissions-Water Quality Relationship')
             insights_html = insights_html.replace('{{CONTENT}}', content)
 
-        # Analysis 3: Integrated Dataset
+        # Analysis 3: National Growth Correlation (2011-2022)
+        national_growth_analysis = self._calculate_national_period_growth_correlation(analysis_dict)
+        if national_growth_analysis:
+            content = self._build_national_growth_content(national_growth_analysis)
+            insights_html += card_template.replace('{{TITLE}}', 'Analysis 3: National Population vs Emission Growth (2011-2022)')
+            insights_html = insights_html.replace('{{CONTENT}}', content)
+        
+        # Analysis 4: Integrated Dataset
         content = """
             <p><strong>Integration Approach:</strong> Primary analytical dataset combining water quality monitoring with demographic census data (visualized in components 1-15 above).</p>
             <p><strong>Temporal Scope:</strong> Water quality observation period (2021-2024) with 2022 census baseline propagated to non-census years.</p>
             <p><strong>Analytical Purpose:</strong> Facilitates county-level assessment of water quality temporal patterns within demographic context.</p>
         """
-        insights_html += card_template.replace('{{TITLE}}', 'Analysis 3: Integrated Water Quality-Demographics Dataset')
+        insights_html += card_template.replace('{{TITLE}}', 'Analysis 4: Integrated Water Quality-Demographics Dataset')
         insights_html = insights_html.replace('{{CONTENT}}', content)
         
         insights_html += '</div>'
@@ -792,6 +799,99 @@ class DashboardVisualizer:
                 content_parts.append(f"<li>{county['county']}: +{county['population_change_pct']:.1f}% intercensal change</li>")
             content_parts.append("</ul>")
 
+        return '\n'.join(content_parts)
+    
+    def _calculate_national_period_growth_correlation(self, analysis_dict: Dict[str, Any]) -> Dict[str, Any]:
+        """Calculate correlation between total national population growth and emission growth (2011-2022)"""
+        pvp_df = analysis_dict['processed_data'].get('pollution_vs_population', pd.DataFrame())
+        
+        if pvp_df.empty:
+            return {}
+        
+        # Get national data by year
+        national_data = pvp_df.groupby('year').agg({
+            'total_national_population': 'first',
+            'total_emissions': 'first'
+        }).reset_index().sort_values('year')
+        
+        if len(national_data) < 2:
+            return {}
+        
+        # Calculate total period growth
+        baseline = national_data.iloc[0]
+        final = national_data.iloc[-1]
+        
+        pop_growth = ((final['total_national_population'] - baseline['total_national_population']) / 
+                     baseline['total_national_population'] * 100)
+        emission_growth = ((final['total_emissions'] - baseline['total_emissions']) / 
+                          baseline['total_emissions'] * 100)
+        
+        # Calculate correlation coefficient if we have multiple data points
+        correlation_coeff = None
+        if len(national_data) >= 3:
+            # Calculate growth rates for each period
+            pop_values = national_data['total_national_population'].values
+            emission_values = national_data['total_emissions'].values
+            
+            from scipy.stats import pearsonr
+            correlation_coeff, _ = pearsonr(pop_values, emission_values)
+        
+        return {
+            'baseline_year': int(baseline['year']),
+            'final_year': int(final['year']),
+            'population_growth_pct': pop_growth,
+            'emission_growth_pct': emission_growth,
+            'baseline_population': baseline['total_national_population'],
+            'final_population': final['total_national_population'],
+            'baseline_emissions': baseline['total_emissions'],
+            'final_emissions': final['total_emissions'],
+            'correlation_coefficient': correlation_coeff
+        }
+    
+    def _build_national_growth_content(self, growth_data: Dict[str, Any]) -> str:
+        """Build content for national growth correlation analysis"""
+        content_parts = []
+        
+        years_span = f"{growth_data['baseline_year']}-{growth_data['final_year']}"
+        pop_growth = growth_data['population_growth_pct']
+        emission_growth = growth_data['emission_growth_pct']
+        
+        content_parts.append(f"<p><strong>Analysis Period:</strong> {years_span} (Census Period Comparison)</p>")
+        
+        content_parts.append("<p><strong>Total Period Growth Rates:</strong></p>")
+        content_parts.append("<ul style='margin: 5px 0 15px 20px;'>")
+        
+        # Color code based on growth direction
+        pop_color = '#27ae60' if pop_growth > 0 else '#e74c3c'
+        emission_color = '#e74c3c' if emission_growth > 0 else '#27ae60'
+        
+        content_parts.append(f"<li><strong>National Population Growth:</strong> <span style='color: {pop_color}; font-weight: bold;'>{pop_growth:+.1f}%</span></li>")
+        content_parts.append(f"<li><strong>National Emission Growth:</strong> <span style='color: {emission_color}; font-weight: bold;'>{emission_growth:+.1f}%</span></li>")
+        content_parts.append("</ul>")
+        
+        # Calculate simple correlation (both positive or both negative = positive correlation)
+        if (pop_growth > 0 and emission_growth > 0) or (pop_growth < 0 and emission_growth < 0):
+            correlation_direction = "positive"
+            correlation_color = "#e74c3c"
+        else:
+            correlation_direction = "negative"
+            correlation_color = "#27ae60"
+        
+        content_parts.append(f"<p><strong>Growth Relationship:</strong> <span style='color: {correlation_color}; font-weight: bold;'>{correlation_direction.capitalize()}</span> - both variables moved in the {'same' if correlation_direction == 'positive' else 'opposite'} direction over the census period.</p>")
+        
+        # Add correlation coefficient if available
+        if growth_data.get('correlation_coefficient') is not None:
+            r_value = growth_data['correlation_coefficient']
+            r_color = '#e74c3c' if abs(r_value) > 0.7 else '#f39c12' if abs(r_value) > 0.3 else '#95a5a6'
+            content_parts.append(f"<p><strong>Pearson Correlation Coefficient:</strong> <span style='color: {r_color}; font-weight: bold;'>r = {r_value:.3f}</span></p>")
+        
+        # Add absolute values
+        content_parts.append("<p><strong>Absolute Values:</strong></p>")
+        content_parts.append("<ul style='margin: 5px 0 0 20px;'>")
+        content_parts.append(f"<li>Population: {growth_data['baseline_population']:,.0f} → {growth_data['final_population']:,.0f}</li>")
+        content_parts.append(f"<li>Emissions: {growth_data['baseline_emissions']:,.0f} → {growth_data['final_emissions']:,.0f} tonnes</li>")
+        content_parts.append("</ul>")
+        
         return '\n'.join(content_parts)
 
     def _load_insight_card_template(self) -> str:
