@@ -17,9 +17,9 @@ class DataProcessor:
     
     # Counties to include in analysis (only those with both water quality and population data)
     ANALYSIS_COUNTIES = [
-        'Clare', 'Cork', 'Donegal', 'Dublin', 'Fingal', 'Galway', 'Kerry', 
-        'Leitrim', 'Louth', 'Mayo', 'Meath', 'Sligo', 'Tipperary', 
-        'Waterford', 'Westmeath', 'Wexford', 'Wicklow'
+        'Clare', 'Cork', 'Cork City', 'Donegal', 'Dublin', 'Dublin City', 'Fingal', 
+        'Galway', 'Galway City', 'Kerry', 'Leitrim', 'Louth', 'Mayo', 'Meath', 
+        'Sligo', 'Tipperary', 'Waterford', 'Westmeath', 'Wexford', 'Wicklow'
     ]
     
     def __init__(self):
@@ -205,61 +205,24 @@ class DataProcessor:
             (processed_df[PopulationColumns.COUNTY] != 'Ireland')
         ].copy()
         if len(census_2022) > 0:
-            self.logger.info(f"Found {len(census_2022)} county records from 2022 Census (excluding Ireland aggregate)")
             county_level_records.append(census_2022)
         
-        # 2016 Census: Use the official census total from the dataset
-        # NOTE: The 2016 census total (4,761,865) is stored in the dataset with census_year=2011
-        # as one of the "Ireland" population records (after "State" is normalized to "Ireland")
-        # This represents the official 2016 census (3.8% growth from 2011's 4,588,252)
-        
-        # Get the 2016 total from Ireland records in census_year 2011
-        ireland_2016_candidates = processed_df[
-            (processed_df['census_year'] == 2011) &
-            (processed_df[PopulationColumns.COUNTY] == 'Ireland') &
-            (processed_df['statistic'] == 'Population') &
-            (processed_df[PopulationColumns.POPULATION] > 4700000) &  # Filter for 2016 census value
-            (processed_df[PopulationColumns.POPULATION] < 4800000)
+        census_2016 = processed_df[
+            (processed_df['census_year'] == 2016) &
+            (processed_df['statistic'] == 'Population per County') &
+            (processed_df[PopulationColumns.COUNTY] == 'Ireland')
         ].copy()
+        if len(census_2016) > 0:
+            county_level_records.append(census_2016)
         
-        if len(ireland_2016_candidates) > 0:
-            # Found the 2016 census total - use it as a single Ireland record
-            ireland_2016 = ireland_2016_candidates.iloc[0:1].copy()
-            ireland_2016[PopulationColumns.YEAR] = 2016
-            ireland_2016['census_year'] = 2016
-            ireland_2016['statistic'] = 'Population per County'
-            county_level_records.append(ireland_2016)
-        
-        # 2011 Census: County-level data
-        # NOTE: 2011 census has 6 "Population" records per county (different time periods/estimates)
-        # We take the SECOND-HIGHEST value which represents the official 2011 census count
-        census_2011 = processed_df[processed_df['census_year'] == 2011].copy()
+        # 2011 Census: County-level data (real CSO API data)
+        census_2011 = processed_df[
+            (processed_df['census_year'] == 2011) &
+            (processed_df['statistic'] == 'Population per County') &
+            (processed_df[PopulationColumns.COUNTY] != 'Ireland')
+        ].copy()
         if len(census_2011) > 0:
-            # Filter to "Population" statistic and exclude "State" (Ireland national)
-            census_2011_pop = census_2011[
-                (census_2011['statistic'] == 'Population') &
-                (census_2011[PopulationColumns.COUNTY] != 'Ireland')
-            ].copy()
-            
-            if len(census_2011_pop) > 0:
-                # For each county, take the second-highest population value (official 2011 census)
-                census_2011_corrected = []
-                for county in census_2011_pop[PopulationColumns.COUNTY].unique():
-                    county_data = census_2011_pop[census_2011_pop[PopulationColumns.COUNTY] == county].copy()
-                    # Sort by population descending and take the second record
-                    county_data = county_data.sort_values(PopulationColumns.POPULATION, ascending=False)
-                    if len(county_data) >= 2:
-                        # Take second-highest (official census count)
-                        official_record = county_data.iloc[1:2].copy()
-                    else:
-                        # Fallback to highest if only one record
-                        official_record = county_data.iloc[0:1].copy()
-                    census_2011_corrected.append(official_record)
-                
-                census_2011_pop = pd.concat(census_2011_corrected, ignore_index=True)
-                census_2011_pop['statistic'] = 'Population per County'
-                self.logger.info(f"Found {len(census_2011_pop)} county records from 2011 Census (using second-highest value = official census)")
-                county_level_records.append(census_2011_pop)
+            county_level_records.append(census_2011)
         
         # Combine all county-level records
         if county_level_records:
@@ -267,6 +230,27 @@ class DataProcessor:
         else:
             self.logger.warning("No county-level population data found")
             return pd.DataFrame()
+        
+        # Special handling for Dublin: Combine Dublin administrative areas for 2011
+        # Dublin City + South Dublin + Fingal + Dún Laoghaire Rathdown = Dublin
+        dublin_areas_2011 = processed_df[
+            (processed_df[PopulationColumns.COUNTY].isin(['Dublin City', 'South Dublin', 'Fingal', 'Dún Laoghaire Rathdown'])) &
+            (processed_df[PopulationColumns.YEAR] == 2011)
+        ]
+        
+        if len(dublin_areas_2011) > 0:
+            # Calculate total Dublin population for 2011
+            total_dublin_2011 = dublin_areas_2011[PopulationColumns.POPULATION].sum()
+            
+            # Create a combined Dublin record for 2011
+            dublin_combined_2011 = dublin_areas_2011.iloc[0:1].copy()  # Use first record as template
+            dublin_combined_2011[PopulationColumns.COUNTY] = 'Dublin'
+            dublin_combined_2011[PopulationColumns.POPULATION] = total_dublin_2011
+            
+            # Add the combined Dublin record
+            processed_df = pd.concat([processed_df, dublin_combined_2011], ignore_index=True)
+            
+            self.logger.info(f"Created combined Dublin record for 2011: {total_dublin_2011:,.0f} (from {len(dublin_areas_2011)} administrative areas)")
         
         # Sort by county and year for growth calculations
         processed_df = processed_df.sort_values([PopulationColumns.COUNTY, PopulationColumns.YEAR])
@@ -292,17 +276,22 @@ class DataProcessor:
         """Normalize county names for consistent merging"""
         if pd.isna(county):
             return county
+        
         # Remove various prefixes and suffixes
         county = str(county).strip()
         county = county.replace('Co. ', '')
         county = county.replace(' County Council', '')
         county = county.replace(' City Council', '')
-        county = county.replace(' City', '')
-        # Handle special cases
-        if county == 'Dún Laoghaire-Rathdown':
-            county = 'Dún Laoghaire Rathdown'
-        if county == 'State':
-            county = 'Ireland'
+        
+        # Apply county normalization mapping from constants
+        if county in IrishCounties.NORMALIZATION_MAPPING:
+            return IrishCounties.NORMALIZATION_MAPPING[county]
+        
+        # Remove ' City' suffix for other cities (but preserve the major city/county pairs above)
+        preserved_cities = ['Cork City', 'Dublin City', 'Galway City']
+        if county not in preserved_cities:
+            county = county.replace(' City', '')
+        
         return county
     
     def _create_all_integrated_datasets(self, processed_data: Dict[str, pd.DataFrame]) -> Dict[str, pd.DataFrame]:

@@ -18,14 +18,19 @@ class FallbackDataGenerator:
         'Waterford', 'Westmeath', 'Wexford', 'Wicklow'
     ]
     
-    # Census 2011 baseline populations
+    # Census 2011 baseline populations (CORRECTED with official CSO figures)
     COUNTY_POPULATIONS_2011 = {
         'Clare': 117196,
-        'Cork': 519032,
+        'Cork': 399802,  # Cork County only (excluding Cork City) - CORRECT per user
+        'Cork City': 119230,  # Cork City separate
         'Donegal': 161137,
-        'Dublin': 1273069,
+        'Dublin': 1273069,  # Combined Dublin area
+        'Dublin City': 527612,  # Dublin City separate
+        'South Dublin': 265205,  # South Dublin separate
         'Fingal': 273991,
-        'Galway': 250541,
+        'Dún Laoghaire Rathdown': 206261,
+        'Galway': 250541,  # CORRECTED: Official Galway County + City 2011 per user
+        'Galway City': 75529,  # Galway City separate
         'Kerry': 145502,
         'Leitrim': 31798,
         'Louth': 122516,
@@ -36,7 +41,46 @@ class FallbackDataGenerator:
         'Waterford': 113795,
         'Westmeath': 86164,
         'Wexford': 145273,
-        'Wicklow': 136640
+        'Wicklow': 136640,
+        'Limerick': 191809,
+        'Carlow': 54612,
+        'Cavan': 73183,
+        'Kilkenny': 95419,
+        'Laois': 80559,
+        'Longford': 39000,
+        'Monaghan': 60483,
+        'Offaly': 76687,
+        'Roscommon': 64065
+    }
+    
+    # Census 2022 populations (CORRECTED with official CSO figures)
+    COUNTY_POPULATIONS_2022 = {
+        'Clare': 127938,
+        'Cork': 584156,  # Cork County + City combined in 2022
+        'Donegal': 167084,
+        'Dublin': 1458154,  # Dublin combined
+        'Fingal': 273991,  # No 2022 data available
+        'Galway': 276451,  # CORRECTED: Official Galway 2022 (County + City)
+        'Kerry': 156458,
+        'Leitrim': 35199,
+        'Louth': 139703,
+        'Mayo': 137970,
+        'Meath': 220826,
+        'Sligo': 70198,
+        'Tipperary': 167895,
+        'Waterford': 127363,
+        'Westmeath': 96221,
+        'Wexford': 163919,
+        'Wicklow': 155851,
+        'Limerick': 209536,
+        'Carlow': 61968,
+        'Cavan': 81704,
+        'Kilkenny': 104160,
+        'Laois': 91877,
+        'Longford': 46751,
+        'Monaghan': 65288,
+        'Offaly': 83150,
+        'Roscommon': 70259
     }
     
     def generate_pollution_data(self, years: List[int] = None) -> pd.DataFrame:

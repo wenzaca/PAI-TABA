@@ -95,6 +95,81 @@ class TestDataCollector(unittest.TestCase):
             self.assertIn('year', pollution.columns)
             self.assertIn('pollutant', pollution.columns)
             self.assertIn('value', pollution.columns)
+    
+    def test_aggregate_city_county_pairs(self):
+        """Test county aggregation functionality"""
+        # Test data with city/county pairs
+        test_records = [
+            {'county': 'Cork City', 'population': 125000, 'year': 2022, 'statistic': 'Population per County'},
+            {'county': 'Cork County', 'population': 400000, 'year': 2022, 'statistic': 'Population per County'},
+            {'county': 'Galway City', 'population': 80000, 'year': 2022, 'statistic': 'Population per County'},
+            {'county': 'Galway County', 'population': 180000, 'year': 2022, 'statistic': 'Population per County'},
+            {'county': 'Dublin City', 'population': 550000, 'year': 2022, 'statistic': 'Population per County'},
+            {'county': 'South Dublin', 'population': 280000, 'year': 2022, 'statistic': 'Population per County'},
+            {'county': 'Fingal', 'population': 320000, 'year': 2022, 'statistic': 'Population per County'},
+            {'county': 'Dún Laoghaire-Rathdown', 'population': 220000, 'year': 2022, 'statistic': 'Population per County'},
+            {'county': 'Limerick City and County', 'population': 195000, 'year': 2022, 'statistic': 'Population per County'},
+            {'county': 'Waterford City and County', 'population': 116000, 'year': 2022, 'statistic': 'Population per County'},
+            {'county': 'Kerry', 'population': 147000, 'year': 2022, 'statistic': 'Population per County'}
+        ]
+        
+        result = self.collector._aggregate_city_county_pairs(test_records)
+        
+        # Convert to dict for easier testing
+        result_dict = {record['county']: record['population'] for record in result}
+        
+        # Test Cork aggregation
+        self.assertIn('Cork', result_dict)
+        self.assertEqual(result_dict['Cork'], 525000)  # 125000 + 400000
+        self.assertNotIn('Cork City', result_dict)
+        self.assertNotIn('Cork County', result_dict)
+        
+        # Test Galway aggregation
+        self.assertIn('Galway', result_dict)
+        self.assertEqual(result_dict['Galway'], 260000)  # 80000 + 180000
+        self.assertNotIn('Galway City', result_dict)
+        self.assertNotIn('Galway County', result_dict)
+        
+        # Test Dublin aggregation
+        self.assertIn('Dublin', result_dict)
+        self.assertEqual(result_dict['Dublin'], 1370000)  # 550000 + 280000 + 320000 + 220000
+        self.assertNotIn('Dublin City', result_dict)
+        self.assertNotIn('South Dublin', result_dict)
+        self.assertNotIn('Fingal', result_dict)
+        self.assertNotIn('Dún Laoghaire-Rathdown', result_dict)
+        
+        # Test direct mappings
+        self.assertIn('Limerick', result_dict)
+        self.assertEqual(result_dict['Limerick'], 195000)
+        self.assertNotIn('Limerick City and County', result_dict)
+        
+        self.assertIn('Waterford', result_dict)
+        self.assertEqual(result_dict['Waterford'], 116000)
+        self.assertNotIn('Waterford City and County', result_dict)
+        
+        # Test unchanged county
+        self.assertIn('Kerry', result_dict)
+        self.assertEqual(result_dict['Kerry'], 147000)
+        
+        # Test total number of aggregated records
+        self.assertEqual(len(result), 6)  # Cork, Galway, Dublin, Limerick, Waterford, Kerry
+    
+    def test_aggregate_city_county_pairs_empty_input(self):
+        """Test aggregation with empty input"""
+        result = self.collector._aggregate_city_county_pairs([])
+        self.assertEqual(result, [])
+    
+    def test_aggregate_city_county_pairs_single_county(self):
+        """Test aggregation with single county (no pairs)"""
+        test_records = [
+            {'county': 'Kerry', 'population': 147000, 'year': 2022, 'statistic': 'Population per County'}
+        ]
+        
+        result = self.collector._aggregate_city_county_pairs(test_records)
+        
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0]['county'], 'Kerry')
+        self.assertEqual(result[0]['population'], 147000)
 
 
 if __name__ == '__main__':

@@ -18,18 +18,48 @@ class TestDataProcessor(unittest.TestCase):
         self.processor = DataProcessor()
         
     def test_normalize_county_name(self):
-        """Test county name normalization"""
+        """Test county name normalization using centralized mapping"""
         # Test removing prefixes and suffixes
         self.assertEqual(self.processor._normalize_county_name('Co. Cork'), 'Cork')
         self.assertEqual(self.processor._normalize_county_name('Dublin City Council'), 'Dublin')
         self.assertEqual(self.processor._normalize_county_name('Galway County Council'), 'Galway')
         
-        # Test special cases
+        # Test centralized normalization mapping
+        # Cork - keeps city separate, county becomes main entry
+        self.assertEqual(self.processor._normalize_county_name('Cork City'), 'Cork City')
+        self.assertEqual(self.processor._normalize_county_name('Cork County'), 'Cork')
+        
+        # Dublin - keeps city separate, county becomes main entry
+        self.assertEqual(self.processor._normalize_county_name('Dublin City'), 'Dublin City')
+        self.assertEqual(self.processor._normalize_county_name('Dublin County'), 'Dublin')
+        
+        # Galway - keeps city separate, county becomes main entry
+        self.assertEqual(self.processor._normalize_county_name('Galway City'), 'Galway City')
+        self.assertEqual(self.processor._normalize_county_name('Galway County'), 'Galway')
+        
+        # Combined city/county entities
+        self.assertEqual(self.processor._normalize_county_name('Limerick City and County'), 'Limerick')
+        self.assertEqual(self.processor._normalize_county_name('Waterford City and County'), 'Waterford')
+        
+        # Special cases
         self.assertEqual(self.processor._normalize_county_name('State'), 'Ireland')
         self.assertEqual(self.processor._normalize_county_name('Dún Laoghaire-Rathdown'), 'Dún Laoghaire Rathdown')
         
+        # Test removing ' City' suffix for non-preserved cities
+        self.assertEqual(self.processor._normalize_county_name('Kilkenny City'), 'Kilkenny')
+        
+        # Test unchanged counties
+        self.assertEqual(self.processor._normalize_county_name('Kerry'), 'Kerry')
+        self.assertEqual(self.processor._normalize_county_name('Mayo'), 'Mayo')
+        
         # Test NaN handling
         self.assertTrue(pd.isna(self.processor._normalize_county_name(np.nan)))
+        
+        # Test empty string handling
+        self.assertEqual(self.processor._normalize_county_name(''), '')
+        
+        # Test whitespace handling
+        self.assertEqual(self.processor._normalize_county_name('  Cork  '), 'Cork')
         
     def test_process_pollution_data_national(self):
         """Test processing national-level pollution data"""

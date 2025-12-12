@@ -132,6 +132,84 @@ class TestIrishCounties(unittest.TestCase):
         for county, area in IrishCounties.COUNTY_AREAS.items():
             self.assertGreater(area, 0, f"{county} area should be positive")
             self.assertLess(area, 10000, f"{county} area seems too large")
+    
+    def test_aggregation_mapping_exists(self):
+        """Test that aggregation mapping dictionary exists"""
+        self.assertIsInstance(IrishCounties.AGGREGATION_MAPPING, dict)
+        self.assertGreater(len(IrishCounties.AGGREGATION_MAPPING), 0)
+    
+    def test_aggregation_mapping_structure(self):
+        """Test aggregation mapping has correct structure"""
+        for source, target in IrishCounties.AGGREGATION_MAPPING.items():
+            self.assertIsInstance(source, str)
+            self.assertIsInstance(target, str)
+            self.assertGreater(len(source), 0)
+            self.assertGreater(len(target), 0)
+    
+    def test_aggregation_mapping_specific_cases(self):
+        """Test specific aggregation mapping cases"""
+        # Cork aggregation
+        self.assertEqual(IrishCounties.AGGREGATION_MAPPING['Cork City'], 'Cork')
+        self.assertEqual(IrishCounties.AGGREGATION_MAPPING['Cork County'], 'Cork')
+        
+        # Galway aggregation
+        self.assertEqual(IrishCounties.AGGREGATION_MAPPING['Galway City'], 'Galway')
+        self.assertEqual(IrishCounties.AGGREGATION_MAPPING['Galway County'], 'Galway')
+        
+        # Dublin aggregation
+        self.assertEqual(IrishCounties.AGGREGATION_MAPPING['Dublin City'], 'Dublin')
+        self.assertEqual(IrishCounties.AGGREGATION_MAPPING['South Dublin'], 'Dublin')
+        self.assertEqual(IrishCounties.AGGREGATION_MAPPING['Fingal'], 'Dublin')
+        self.assertEqual(IrishCounties.AGGREGATION_MAPPING['Dún Laoghaire-Rathdown'], 'Dublin')
+        
+        # Direct mappings
+        self.assertEqual(IrishCounties.AGGREGATION_MAPPING['Limerick City and County'], 'Limerick')
+        self.assertEqual(IrishCounties.AGGREGATION_MAPPING['Waterford City and County'], 'Waterford')
+    
+    def test_normalization_mapping_exists(self):
+        """Test that normalization mapping dictionary exists"""
+        self.assertIsInstance(IrishCounties.NORMALIZATION_MAPPING, dict)
+        self.assertGreater(len(IrishCounties.NORMALIZATION_MAPPING), 0)
+    
+    def test_normalization_mapping_structure(self):
+        """Test normalization mapping has correct structure"""
+        for source, target in IrishCounties.NORMALIZATION_MAPPING.items():
+            self.assertIsInstance(source, str)
+            self.assertIsInstance(target, str)
+            self.assertGreater(len(source), 0)
+            self.assertGreater(len(target), 0)
+    
+    def test_normalization_mapping_specific_cases(self):
+        """Test specific normalization mapping cases"""
+        # Cork - keeps city separate
+        self.assertEqual(IrishCounties.NORMALIZATION_MAPPING['Cork City'], 'Cork City')
+        self.assertEqual(IrishCounties.NORMALIZATION_MAPPING['Cork County'], 'Cork')
+        
+        # Dublin - keeps city separate
+        self.assertEqual(IrishCounties.NORMALIZATION_MAPPING['Dublin City'], 'Dublin City')
+        self.assertEqual(IrishCounties.NORMALIZATION_MAPPING['Dublin County'], 'Dublin')
+        
+        # Galway - keeps city separate
+        self.assertEqual(IrishCounties.NORMALIZATION_MAPPING['Galway City'], 'Galway City')
+        self.assertEqual(IrishCounties.NORMALIZATION_MAPPING['Galway County'], 'Galway')
+        
+        # Combined entities
+        self.assertEqual(IrishCounties.NORMALIZATION_MAPPING['Limerick City and County'], 'Limerick')
+        self.assertEqual(IrishCounties.NORMALIZATION_MAPPING['Waterford City and County'], 'Waterford')
+        
+        # Special cases
+        self.assertEqual(IrishCounties.NORMALIZATION_MAPPING['Dún Laoghaire-Rathdown'], 'Dún Laoghaire Rathdown')
+        self.assertEqual(IrishCounties.NORMALIZATION_MAPPING['State'], 'Ireland')
+    
+    def test_mapping_differences(self):
+        """Test that aggregation and normalization mappings serve different purposes"""
+        # Cork City should aggregate to Cork but normalize to Cork City
+        self.assertEqual(IrishCounties.AGGREGATION_MAPPING['Cork City'], 'Cork')
+        self.assertEqual(IrishCounties.NORMALIZATION_MAPPING['Cork City'], 'Cork City')
+        
+        # Dublin City should aggregate to Dublin but normalize to Dublin City
+        self.assertEqual(IrishCounties.AGGREGATION_MAPPING['Dublin City'], 'Dublin')
+        self.assertEqual(IrishCounties.NORMALIZATION_MAPPING['Dublin City'], 'Dublin City')
 
 
 class TestAnalysisConstants(unittest.TestCase):

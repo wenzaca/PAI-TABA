@@ -112,9 +112,10 @@ class DataCollector:
         
         census_datasets = {
             2011: 'E2011',
-            2016: 'E2016',
             2022: 'G0420'
         }
+
+        self._process_2016_data_from_2011_dataset(all_population_data)
         
         for year, dataset_code in census_datasets.items():
             try:
@@ -126,16 +127,14 @@ class DataCollector:
                     data = response.json()
                     
                     if 'dimension' in data and 'value' in data:
-                        records = self._parse_cso_jsonstat(data, 'population')
+
+                        county_records = self._extract_county_population_data(data, year)
                         
-                        if records:
-                            df = pd.DataFrame(records)
-                            df = self._normalize_population_columns(df)
-                            
-                            df['year'] = year
-                            df['census_year'] = year
-                            
+                        if county_records:
+                            df = pd.DataFrame(county_records)
                             all_population_data.append(df)
+                        else:
+                            self.logger.warning(f"No county records found in {year} census")
                     else:
                         self.logger.warning(f"Invalid data format from {year} Census")
                 else:
@@ -148,8 +147,27 @@ class DataCollector:
             combined_df = pd.concat(all_population_data, ignore_index=True)
             return combined_df
         else:
-            return self._get_fallback_generator().generate_population_data()
-    
+            self.logger.warning("No census data collected, using fallback")
+            return self._get_fallback_generator().generate_population_data([2011, 2016, 2022])
+
+    def _process_2016_data_from_2011_dataset(self, all_population_data):
+        try:
+            url = f"{self.base_urls['cso']}/E2011/JSON-stat/2.0/en"
+            response = requests.get(url, timeout=60)
+
+            if response.status_code == 200:
+                data = response.json()
+                if 'dimension' in data and 'value' in data:
+                    # Extract 2016 national total only
+                    ireland_2016_record = self._extract_national_total_2016(data, 'E2011')
+                    if ireland_2016_record:
+                        df_2016 = pd.DataFrame([ireland_2016_record])
+                        all_population_data.append(df_2016)
+                        self.logger.info(
+                            f"Extracted 2016 Ireland national total: {ireland_2016_record['population']:,}")
+        except Exception as e:
+            self.logger.warning(f"Could not extract 2016 national total: {str(e)}")
+
     def _parse_cso_jsonstat(self, data: dict, dataset_type: str) -> List[Dict]:
         """Parse CSO JSON-stat 2.0 format data"""
         records = []
@@ -239,6 +257,182 @@ class DataCollector:
                 df.rename(columns={'Population': 'population'}, inplace=True)
         
         return df
+    
+    def _extract_county_population_data(self, data: dict, year: int) -> List[Dict]:
+        """
+        Extract county-level population data from CSO JSON-stat format
+        Properly handles city/county aggregation for Cork, Galway, etc.
+        Handles different dataset structures for 2011, 2016, 2022
+        """
+        records = []
+        
+        try:
+            dimensions = data.get('dimension', {})
+            values = data.get('value', [])
+            
+            # Find dimension info - different datasets have different structures
+            county_dim = None
+            sex_dim = None
+            statistic_dim = None
+            year_dim = None
+
+            for dim_id, dim_data in dimensions.items():
+                label = dim_data.get('label', '').lower()
+                if 'county' in label or 'city' in label or 'area' in label or 'electoral' in label or 'towns' in label:
+                    county_dim = dim_id
+                elif 'sex' in label:
+                    sex_dim = dim_id
+                elif 'statistic' in label:
+                    statistic_dim = dim_id
+                elif 'year' in label or 'census' in label:
+                    year_dim = dim_id
+            
+            if not county_dim:
+                self.logger.warning(f"No county/area dimension found in {year} census data")
+                return records
+            
+            # Get dimension categories
+            counties = list(dimensions[county_dim]['category']['label'].values())
+            sexes = list(dimensions[sex_dim]['category']['label'].values()) if sex_dim else ['Both sexes']
+            statistics = list(dimensions[statistic_dim]['category']['label'].values()) if statistic_dim else ['Population']
+            years = list(dimensions[year_dim]['category']['label'].values()) if year_dim else [str(year)]
+            
+            self.logger.info(f"{year} census: Found {len(counties)} counties, {len(statistics)} statistics")
+            
+
+            import itertools
+            
+            dim_names = list(dimensions.keys())
+            dim_values_lists = [list(dimensions[dim_id]['category']['label'].values()) for dim_id in dim_names]
+            
+            for idx, combination in enumerate(itertools.product(*dim_values_lists)):
+                if idx < len(values) and values[idx] is not None:
+                    dim_values = dict(zip(dim_names, combination))
+                    
+                    county = dim_values.get(county_dim, '')
+                    sex = dim_values.get(sex_dim, 'Both sexes')
+                    statistic = dim_values.get(statistic_dim, 'Population')
+                    census_year = dim_values.get(year_dim, str(year))
+
+                    include_record = False
+                    
+                    if year == 2011:
+                        include_record = (
+                            county != 'State' and 
+                            sex == 'Both sexes' and 
+                            statistic == 'Population' and
+                            str(year) in census_year
+                        )
+
+                    elif year == 2022:
+                        include_record = (
+                            county.startswith('Co. ') and
+                            'Population per County' in statistic
+                        )
+                        county = county.replace('Co. ', '')
+
+                    
+                    if include_record:
+                        records.append({
+                            'county': county,
+                            'year': year,
+                            'census_year': year,
+                            'population': values[idx],
+                            'statistic': 'Population per County'
+                        })
+            
+            self.logger.info(f"Extracted {len(records)} raw records from {year} census")
+            
+            aggregated_records = self._aggregate_city_county_pairs(records)
+            
+            return aggregated_records
+            
+        except Exception as e:
+            self.logger.error(f"Error extracting county population data for {year}: {str(e)}")
+            return records
+    
+    def _aggregate_city_county_pairs(self, records: List[Dict]) -> List[Dict]:
+        """
+        Aggregate city and county pairs (Cork City + Cork County = Cork, etc.)
+        """
+        from .constants import IrishCounties
+        
+        aggregated = {}
+        
+        for record in records:
+            county = record['county']
+            population = record['population']
+            
+            # Get the base county name (or use original if no mapping)
+            base_county = IrishCounties.AGGREGATION_MAPPING.get(county, county)
+            
+            # Initialize aggregated record if not exists
+            if base_county not in aggregated:
+                aggregated[base_county] = record.copy()
+                aggregated[base_county]['county'] = base_county
+                aggregated[base_county]['population'] = 0
+            
+            # Add population to the aggregated record
+            aggregated[base_county]['population'] += population
+        
+        return list(aggregated.values())
+    
+    def _extract_national_total_2016(self, data: dict, dataset_code: str) -> dict:
+        """
+        Extract 2016 Ireland national total from CSO census datasets
+        Look for State/Ireland records with 2016 population data
+        """
+        try:
+            dimensions = data.get('dimension', {})
+            values = data.get('value', [])
+
+            area_dim = None
+            year_dim = None
+            statistic_dim = None
+            
+            for dim_id, dim_data in dimensions.items():
+                label = dim_data.get('label', '').lower()
+                categories = list(dim_data.get('category', {}).get('label', {}).values())
+
+                if any(cat in ['State', 'Ireland', 'National'] for cat in categories):
+                    area_dim = dim_id
+                elif any('2016' in str(cat) for cat in categories):
+                    year_dim = dim_id
+                elif 'statistic' in label:
+                    statistic_dim = dim_id
+            
+            if not area_dim:
+                return None
+
+            import itertools
+            dim_names = list(dimensions.keys())
+            dim_values_lists = [list(dimensions[dim_id]['category']['label'].values()) for dim_id in dim_names]
+            
+            for idx, combination in enumerate(itertools.product(*dim_values_lists)):
+                if idx < len(values) and values[idx] is not None:
+                    dim_values = dict(zip(dim_names, combination))
+                    
+                    area = dim_values.get(area_dim, '')
+                    year_val = dim_values.get(year_dim, '') if year_dim else ''
+                    statistic = dim_values.get(statistic_dim, '') if statistic_dim else ''
+
+                    is_ireland = area in ['State', 'Ireland', 'National']
+                    is_2016 = '2016' in str(year_val) or '2016' in str(statistic)
+                    is_population = 'population' in statistic.lower() or 'persons' in statistic.lower()
+                    
+                    if is_ireland and is_2016 and (is_population or not statistic_dim):
+                        return {
+                            'county': 'Ireland',
+                            'year': 2016,
+                            'census_year': 2016,
+                            'population': values[idx],
+                            'statistic': 'Population per County'
+                        }
+            
+        except Exception as e:
+            self.logger.debug(f"Error extracting 2016 national total from {dataset_code}: {str(e)}")
+        
+        return None
     
     def _get_fallback_generator(self) -> FallbackDataGenerator:
         """

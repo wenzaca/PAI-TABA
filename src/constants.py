@@ -68,6 +68,50 @@ class IrishCounties:
         'Wexford': 2365,
         'Wicklow': 2025
     }
+    
+    # County aggregation mapping for data collection (combines city/county pairs)
+    AGGREGATION_MAPPING = {
+        # Cork aggregation
+        'Cork City': 'Cork',
+        'Cork County': 'Cork',
+        
+        # Galway aggregation  
+        'Galway City': 'Galway',
+        'Galway County': 'Galway',
+        
+        # Dublin aggregation
+        'Dublin City': 'Dublin',
+        'South Dublin': 'Dublin', 
+        'Fingal': 'Dublin',
+        'Dún Laoghaire-Rathdown': 'Dublin',
+        
+        # Direct mappings (already combined)
+        'Limerick City and County': 'Limerick',
+        'Waterford City and County': 'Waterford'
+    }
+    
+    # County normalization mapping for data processing (keeps cities separate)
+    NORMALIZATION_MAPPING = {
+        # Cork: Keep city separate, county becomes main entry
+        'Cork City': 'Cork City',
+        'Cork County': 'Cork',
+        
+        # Dublin: Keep city separate, county becomes main entry  
+        'Dublin City': 'Dublin City',
+        'Dublin County': 'Dublin',
+        
+        # Galway: Keep city separate, county becomes main entry
+        'Galway City': 'Galway City', 
+        'Galway County': 'Galway',
+        
+        # Combined city/county entities
+        'Limerick City and County': 'Limerick',
+        'Waterford City and County': 'Waterford',
+        
+        # Special cases
+        'Dún Laoghaire-Rathdown': 'Dún Laoghaire Rathdown',
+        'State': 'Ireland'
+    }
 
 class AnalysisConstants:
     EXCELLENT_THRESHOLD = 4
